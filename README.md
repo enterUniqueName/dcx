@@ -31,3 +31,4 @@ supabase db seed --file supabase/seed.sql
 Pushing to `main` builds the static site and deploys it to GitHub Pages via `.github/workflows/deploy.yml`. Set the `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository variables (Settings → Secrets and variables → Actions → Repository variables) — use the publishable key (`sb_publishable_...`), not the secret key. The Pages source must be set to "GitHub Actions" (Settings → Pages).
 
 Live site: https://enterUniqueName.github.io/dcx
+Username and password can be created with Dave.
