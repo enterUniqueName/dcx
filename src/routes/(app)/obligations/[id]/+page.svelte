@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
@@ -98,7 +99,7 @@
 	async function confirmDelete() {
 		try {
 			await api.deleteObligation(obligation.id);
-			goto('/obligations');
+			goto(`${base}/obligations`);
 		} catch (e) {
 			error = e.message;
 		}

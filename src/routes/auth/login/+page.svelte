@@ -1,5 +1,6 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api';
 
 	let email = '';
@@ -24,7 +25,7 @@
 					return;
 				}
 			}
-			goto('/');
+			goto(`${base}/`);
 		} catch (e) {
 			error = e.message;
 		} finally {

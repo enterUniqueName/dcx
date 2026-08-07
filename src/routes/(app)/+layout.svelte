@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { authReady, user, organizations, activeOrganizationId } from '$lib/api/context.js';
@@ -9,13 +10,13 @@
 
 	async function onSignOut() {
 		await api.signOut();
-		goto('/auth/login');
+		goto(`${base}/auth/login`);
 	}
 
 	onMount(async () => {
 		await api.initAuth();
 		if (!$user) {
-			goto('/auth/login');
+			goto(`${base}/auth/login`);
 			return;
 		}
 		await api.refreshOrganizations();
