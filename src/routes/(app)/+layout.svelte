@@ -6,7 +6,13 @@
 	import { api } from '$lib/api';
 	import { authReady, orgsReady, user, organizations, activeOrganizationId } from '$lib/api/context.js';
 
-	$: isActive = (href) => $page.url.pathname === href;
+	// Highlight the current section: exact match for the dashboard, prefix
+	// match elsewhere so detail pages (e.g. /obligations/[id]) keep their
+	// parent nav item highlighted.
+	$: isActive = (href) => {
+		if (href === `${base}/`) return $page.url.pathname === `${base}/`;
+		return $page.url.pathname.startsWith(href);
+	};
 
 	const links = [
 		{ href: `${base}/`, label: 'Dashboard' },

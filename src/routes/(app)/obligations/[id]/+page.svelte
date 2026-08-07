@@ -5,6 +5,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
+	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import DueChip from '$lib/components/ui/DueChip.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ObligationForm from '$lib/components/obligation/ObligationForm.svelte';
@@ -115,6 +116,13 @@
 		}
 	}
 </script>
+
+<Breadcrumb
+	items={[
+		{ label: 'Obligations', href: `${base}/obligations` },
+		{ label: obligation?.name ?? 'Details' }
+	]}
+/>
 
 {#if loading}
 	<p class="empty">Loading…</p>
