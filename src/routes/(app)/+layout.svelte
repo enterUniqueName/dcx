@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
-	import { authReady, user, organizations, activeOrganizationId } from '$lib/api/context.js';
+	import { authReady, orgsReady, user, organizations, activeOrganizationId } from '$lib/api/context.js';
 
 	$: isActive = (href) => $page.url.pathname === href;
 
@@ -23,7 +23,7 @@
 	});
 </script>
 
-{#if !$authReady}
+{#if !$authReady || !$orgsReady}
 	<p class="center">Loading…</p>
 {:else if !$user}
 	<p class="center">Signing you in…</p>

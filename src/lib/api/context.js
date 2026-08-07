@@ -12,6 +12,7 @@ try {
 }
 
 export const authReady = writable(false);
+export const orgsReady = writable(false);
 export const session = writable(null);
 export const user = writable(null);
 export const organizations = writable([]);
@@ -88,6 +89,8 @@ export async function refreshOrganizations() {
 		}
 	}
 
+	orgsReady.set(true);
+
 	return data;
 }
 
@@ -100,9 +103,14 @@ export function setActiveOrganization(id) {
 	}
 }
 
-// The organization every api.* call is scoped to.
+// The organization every api.* call is scoped to. Falls back to the first
+// loaded organization so pages don't race refreshOrganizations().
 export function getOrgId() {
-	const id = get(activeOrganizationId);
+	let id = get(activeOrganizationId);
+	if (!id) {
+		id = get(organizations)[0]?.id ?? null;
+		if (id) setActiveOrganization(id);
+	}
 	if (!id) throw new Error('No active organization selected.');
 	return id;
 }
