@@ -9,7 +9,8 @@
 	export let onCancel = null;
 
 	const CATEGORIES = [
-		'utility',
+		'water',
+		'electric',
 		'tax',
 		'insurance',
 		'loan_payment',
@@ -49,7 +50,8 @@
 	let form = {
 		name: '',
 		description: '',
-		category: 'utility',
+		category: 'water',
+		variable_amount: true,
 		ownership_entity_id: '',
 		property_id: '',
 		vendor_id: '',
@@ -74,12 +76,18 @@
 		(p) => !form.ownership_entity_id || p.ownership_entity_id === form.ownership_entity_id
 	);
 
+	// Water/electric bills are usage-based: default the variable-amount flag
+	// on. Only sets true, so a manually unchecked flag stays off until the
+	// category is switched away and back.
+	$: if (form.category === 'water' || form.category === 'electric') form.variable_amount = true;
+
 	onMount(async () => {
 		if (initial) {
 			form = {
 				name: initial.name ?? '',
 				description: initial.description ?? '',
-				category: initial.category ?? 'utility',
+				category: initial.category ?? 'water',
+				variable_amount: initial.variable_amount ?? false,
 				ownership_entity_id: initial.ownership_entity_id ?? '',
 				property_id: initial.property_id ?? '',
 				vendor_id: initial.vendor_id ?? '',
@@ -129,6 +137,7 @@
 			name: form.name.trim(),
 			description: form.description.trim() || null,
 			category: form.category,
+			variable_amount: form.variable_amount,
 			ownership_entity_id: form.ownership_entity_id || null,
 			property_id: form.property_id || null,
 			vendor_id: form.vendor_id || null,
@@ -281,6 +290,13 @@
 	</div>
 
 	<div class="field-row">
+		<div class="field">
+			<label for="ob-variable">Amount type</label>
+			<label class="check">
+				<input id="ob-variable" type="checkbox" bind:checked={form.variable_amount} />
+				Variable (estimate from last 3 bills)
+			</label>
+		</div>
 		<div class="field">
 			<label for="ob-bstart">Billing start (optional)</label>
 			<input id="ob-bstart" class="input" type="date" bind:value={form.billing_start} />

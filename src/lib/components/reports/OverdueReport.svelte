@@ -10,7 +10,7 @@
 		{ key: 'property_name', label: 'Property' },
 		{ key: 'category', label: 'Category' },
 		{ key: 'next_due_date', label: 'Due', format: 'date' },
-		{ key: 'amount', label: 'Amount', format: 'money' }
+		{ key: 'est_amount', label: 'Amount', format: 'money' }
 	];
 
 	let rows = [];

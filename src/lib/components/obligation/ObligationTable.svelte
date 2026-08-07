@@ -7,6 +7,10 @@
 	export let obligations = [];
 	export let showReceived = false;
 	export let showStatus = true;
+
+	function isDerived(ob) {
+		return ob.est_amount != null && Number(ob.est_amount) !== Number(ob.amount);
+	}
 </script>
 
 {#if obligations.length === 0}
@@ -36,7 +40,10 @@
 						<td>{ob.property_name ?? '—'}</td>
 						<td>{ob.category}</td>
 						<td><DueChip dueDate={ob.next_due_date} /></td>
-						<td class="num">{formatMoney(ob.amount)}</td>
+						<td class="num">
+							{formatMoney(ob.est_amount ?? ob.amount)}
+							{#if isDerived(ob)}<span class="est" title="Estimated: average of the last 3 bills">est</span>{/if}
+						</td>
 						{#if showReceived}<td>{ob.received ? 'Yes' : 'No'}</td>{/if}
 						{#if showStatus}<td><StatusBadge status={ob.is_overdue ? 'overdue' : ob.status} /></td>{/if}
 					</tr>
@@ -45,3 +52,12 @@
 		</table>
 	</div>
 {/if}
+
+<style>
+	.est {
+		font-size: 11px;
+		color: var(--text-muted);
+		margin-left: 0.25rem;
+		text-transform: uppercase;
+	}
+</style>

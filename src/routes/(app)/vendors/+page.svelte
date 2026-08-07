@@ -18,7 +18,8 @@
 			label: 'Category',
 			type: 'select',
 			options: [
-				{ value: 'utility', label: 'Utility' },
+				{ value: 'water', label: 'Water' },
+				{ value: 'electric', label: 'Electric' },
 				{ value: 'tax', label: 'Tax' },
 				{ value: 'insurance', label: 'Insurance' },
 				{ value: 'maintenance', label: 'Maintenance' },
@@ -34,7 +35,7 @@
 		{ key: 'notes', label: 'Notes', type: 'textarea' }
 	];
 
-	const defaults = { category: 'utility', active: true };
+	const defaults = { category: 'water', active: true };
 </script>
 
 <CrudPage

@@ -17,9 +17,12 @@
 		}
 	});
 
-	$: upcomingTotal = snapshot?.upcoming.reduce((s, o) => s + Number(o.amount), 0) ?? 0;
-	$: overdueTotal = snapshot?.overdue.reduce((s, o) => s + Number(o.amount), 0) ?? 0;
-	$: receivedTotal = snapshot?.received.reduce((s, o) => s + Number(o.amount), 0) ?? 0;
+	// Use the estimated amount (avg of last 3 bills) where present, so totals
+	// reflect variable water/electric bills rather than the configured amount.
+	$: est = (o) => Number(o.est_amount ?? o.amount);
+	$: upcomingTotal = snapshot?.upcoming.reduce((s, o) => s + est(o), 0) ?? 0;
+	$: overdueTotal = snapshot?.overdue.reduce((s, o) => s + est(o), 0) ?? 0;
+	$: receivedTotal = snapshot?.received.reduce((s, o) => s + est(o), 0) ?? 0;
 </script>
 
 <h1>Dashboard</h1>

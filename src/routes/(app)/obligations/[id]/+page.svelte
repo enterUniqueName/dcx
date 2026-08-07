@@ -26,6 +26,11 @@
 	let pendingDelete = null;
 	let pendingPaymentDelete = null;
 
+	$: isDerived =
+		obligation &&
+		obligation.est_amount != null &&
+		Number(obligation.est_amount) !== Number(obligation.amount);
+
 	onMount(load);
 
 	async function load() {
@@ -171,7 +176,11 @@
 		<div class="fact"><span>Property</span><b>{obligation.property_name ?? '—'}</b></div>
 		<div class="fact"><span>Vendor</span><b>{obligation.vendor_name ?? '—'}</b></div>
 		<div class="fact"><span>Loan</span><b>{obligation.loan_name ?? '—'}</b></div>
-		<div class="fact"><span>Amount</span><b>{formatMoney(obligation.amount)}</b></div>
+		<div class="fact">
+			<span>Amount</span>
+			<b>{formatMoney(obligation.est_amount ?? obligation.amount)}</b>
+			{#if isDerived}<span>Estimated · average of the last 3 bills</span>{/if}
+		</div>
 		<div class="fact"><span>Frequency</span><b>{obligation.frequency.replace('_', ' ')}</b></div>
 		<div class="fact"><span>Billing period</span><b>{formatDate(obligation.billing_start)} → {formatDate(obligation.billing_end)}</b></div>
 		<div class="fact"><span>Portal</span><b>{#if obligation.portal_url}<a href={obligation.portal_url} target="_blank" rel="noopener">Open portal</a>{:else}—{/if}</b></div>

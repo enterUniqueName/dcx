@@ -144,8 +144,8 @@ on conflict (id) do nothing;
 -- ---------------------------------------------------------------------------
 insert into vendors (id, organization_id, name, category, email, phone, active) values
   ('61000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '[DEMO] Apex Commercial Insurance', 'insurance', 'billing@demo-apex.example', '555-0101', true),
-  ('61000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '[DEMO] Rockland Power & Light', 'utility', 'accounts@demo-rockland.example', '555-0102', true),
-  ('61000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '[DEMO] City Water & Sewer', 'utility', 'water@demo-city.example', '555-0103', true),
+  ('61000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '[DEMO] Rockland Power & Light', 'electric', 'accounts@demo-rockland.example', '555-0102', true),
+  ('61000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '[DEMO] City Water & Sewer', 'water', 'water@demo-city.example', '555-0103', true),
   ('61000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '[DEMO] Hearthside HVAC', 'maintenance', 'service@demo-hearthside.example', '555-0104', true),
   ('61000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '[DEMO] GreenScape Landscaping', 'maintenance', 'info@demo-greenscape.example', '555-0105', true)
 on conflict (id) do nothing;
@@ -165,11 +165,11 @@ on conflict (id) do nothing;
 -- ---------------------------------------------------------------------------
 -- [DEMO] Recurring obligations — replace with real bills
 -- ---------------------------------------------------------------------------
-insert into obligations (id, organization_id, ownership_entity_id, property_id, vendor_id, name, description, category, amount, frequency, interval_months, due_day, weekday, nth_occurrence, next_due_date, status, notes) values
-  ('71000000-0000-4000-8000-000000000027', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000002', '[DEMO] Electric — 309 Hancock', 'Monthly electric service (dummy)', 'utility', 180.00, 'monthly', 1, 20, null, null, '2026-08-20', 'open', null),
-  ('71000000-0000-4000-8000-000000000028', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000006', '61000000-0000-4000-8000-000000000003', '[DEMO] Water & Sewer — Motor Co', 'Monthly water/sewer due the 2nd-to-last Wednesday', 'utility', 95.00, 'monthly', 1, null, 3, -2, '2026-08-19', 'open', null),
-  ('71000000-0000-4000-8000-000000000029', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000004', '[DEMO] HVAC Maintenance — Tacos2', 'Monthly HVAC maintenance (dummy)', 'maintenance', 120.00, 'monthly', 1, 25, null, null, '2026-08-25', 'open', null),
-  ('71000000-0000-4000-8000-000000000030', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000004', '61000000-0000-4000-8000-000000000001', '[DEMO] Liability Insurance — Teachable Moments', 'Annual liability policy (dummy)', 'insurance', 2400.00, 'annual', null, 15, null, null, '2026-10-15', 'open', null)
+insert into obligations (id, organization_id, ownership_entity_id, property_id, vendor_id, name, description, category, amount, frequency, interval_months, due_day, weekday, nth_occurrence, next_due_date, status, variable_amount, notes) values
+  ('71000000-0000-4000-8000-000000000027', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000002', '[DEMO] Electric — 309 Hancock', 'Monthly electric service (dummy)', 'electric', 180.00, 'monthly', 1, 20, null, null, '2026-08-20', 'open', true, null),
+  ('71000000-0000-4000-8000-000000000028', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000006', '61000000-0000-4000-8000-000000000003', '[DEMO] Water & Sewer — Motor Co', 'Monthly water/sewer due the 2nd-to-last Wednesday', 'water', 95.00, 'monthly', 1, null, 3, -2, '2026-08-19', 'open', true, null),
+  ('71000000-0000-4000-8000-000000000029', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000004', '[DEMO] HVAC Maintenance — Tacos2', 'Monthly HVAC maintenance (dummy)', 'maintenance', 120.00, 'monthly', 1, 25, null, null, '2026-08-25', 'open', false, null),
+  ('71000000-0000-4000-8000-000000000030', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000004', '61000000-0000-4000-8000-000000000001', '[DEMO] Liability Insurance — Teachable Moments', 'Annual liability policy (dummy)', 'insurance', 2400.00, 'annual', null, 15, null, null, '2026-10-15', 'open', false, null)
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------

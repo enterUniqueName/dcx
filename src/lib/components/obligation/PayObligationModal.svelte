@@ -18,9 +18,14 @@
 	let notes = '';
 	let error = '';
 
+	$: estDerived =
+		obligation &&
+		obligation.est_amount != null &&
+		Number(obligation.est_amount) !== Number(obligation.amount);
+
 	$: {
 		if (obligation) {
-			amount = String(obligation.amount ?? '');
+			amount = String(obligation.est_amount ?? obligation.amount ?? '');
 			fundingEntityId = obligation.ownership_entity_id ?? '';
 		}
 	}
@@ -51,8 +56,11 @@
 	{#if obligation}
 		<p class="ob-name">
 			{obligation.name}
-			<span class="muted">· {formatMoney(obligation.amount)}</span>
+			<span class="muted">· {formatMoney(obligation.est_amount ?? obligation.amount)}</span>
 		</p>
+		{#if estDerived}
+			<p class="hint">Amount prefilled from the average of the last 3 bills. Adjust to the actual bill.</p>
+		{/if}
 
 		<div class="field-row">
 			<div class="field">

@@ -22,7 +22,8 @@
 		{ value: 'canceled', label: 'Canceled' }
 	];
 	const CATEGORIES = [
-		'utility',
+		'water',
+		'electric',
 		'tax',
 		'insurance',
 		'loan_payment',
