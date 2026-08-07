@@ -73,9 +73,6 @@
 	.report-head h2 {
 		margin: 0;
 	}
-	.num {
-		text-align: right;
-	}
 	td a {
 		color: var(--primary);
 	}

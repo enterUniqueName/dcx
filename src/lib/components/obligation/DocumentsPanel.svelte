@@ -134,24 +134,10 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		text-align: left;
-		border: none;
-		background: none;
-		padding: 0;
-		color: var(--primary);
-		cursor: pointer;
-		font: inherit;
-	}
-	.link-btn:hover {
-		text-decoration: underline;
 	}
 	.meta {
 		color: var(--text-muted);
 		font-size: 12px;
 		white-space: nowrap;
-	}
-	.btn-small {
-		padding: 0.2rem 0.5rem;
-		font-size: 12px;
 	}
 </style>

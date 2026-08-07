@@ -168,43 +168,7 @@
 {/if}
 
 <style>
-	.subtitle {
-		color: var(--text-muted);
-		margin-top: 0;
-	}
-	.filters {
-		display: flex;
-		gap: 0.6rem;
-		margin-bottom: 1rem;
-		flex-wrap: wrap;
-	}
 	.filters .select {
 		min-width: 180px;
-	}
-	.search {
-		max-width: 260px;
-	}
-	.num {
-		text-align: right;
-	}
-	.row-actions {
-		text-align: right;
-		white-space: nowrap;
-	}
-	.link-btn {
-		border: none;
-		background: none;
-		padding: 0;
-		color: var(--primary);
-		cursor: pointer;
-		font: inherit;
-		text-align: left;
-	}
-	.link-btn:hover {
-		text-decoration: underline;
-	}
-	.btn-small {
-		padding: 0.2rem 0.5rem;
-		font-size: 12px;
 	}
 </style>

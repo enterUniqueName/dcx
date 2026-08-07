@@ -222,7 +222,6 @@
 		gap: 0.6rem;
 	}
 	.subtitle {
-		color: var(--text-muted);
 		margin: 0.25rem 0 0;
 	}
 	.actions {

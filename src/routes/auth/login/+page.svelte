@@ -84,7 +84,6 @@
 		margin: 0;
 	}
 	.subtitle {
-		color: var(--text-muted);
 		margin: 0 0 1rem;
 	}
 	.btn-block {

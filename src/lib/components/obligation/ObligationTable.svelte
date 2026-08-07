@@ -44,9 +44,3 @@
 		</table>
 	</div>
 {/if}
-
-<style>
-	.num {
-		text-align: right;
-	}
-</style>

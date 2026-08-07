@@ -82,17 +82,6 @@
 {/if}
 
 <style>
-	.subtitle {
-		color: var(--text-muted);
-		margin: 0;
-	}
-	.filters {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-end;
-		gap: 0.75rem;
-		margin-bottom: 1rem;
-	}
 	.filter {
 		display: grid;
 		gap: 0.25rem;

@@ -32,9 +32,3 @@
 	<ObligationForm busy={saving} onSubmit={save} 	onCancel={() => goto(`${base}/obligations`)} />
 </div>
 
-<style>
-	.subtitle {
-		color: var(--text-muted);
-		margin: 0;
-	}
-</style>

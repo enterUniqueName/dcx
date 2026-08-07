@@ -34,10 +34,6 @@
 <div hidden={active !== 'cross'}><CrossEntityReport /></div>
 
 <style>
-	.subtitle {
-		color: var(--text-muted);
-		margin-top: 0;
-	}
 	.tabs {
 		display: flex;
 		gap: 0.4rem;

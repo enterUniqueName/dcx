@@ -64,17 +64,10 @@
 {/if}
 
 <style>
-	.num {
-		text-align: right;
-	}
 	.muted {
 		color: var(--text-muted);
 	}
 	.cross {
 		color: var(--warn);
-	}
-	.btn-small {
-		padding: 0.2rem 0.5rem;
-		font-size: 12px;
 	}
 </style>

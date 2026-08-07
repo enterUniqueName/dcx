@@ -153,20 +153,3 @@
 	/>
 {/if}
 
-<style>
-	.subtitle {
-		color: var(--text-muted);
-		margin-top: 0;
-	}
-	.num {
-		text-align: right;
-	}
-	.row-actions {
-		text-align: right;
-		white-space: nowrap;
-	}
-	.btn-small {
-		padding: 0.2rem 0.5rem;
-		font-size: 12px;
-	}
-</style>

@@ -116,9 +116,6 @@
 		color: var(--text-muted);
 		margin-top: 0;
 	}
-	.num {
-		text-align: right;
-	}
 	.bar {
 		background: var(--border);
 		border-radius: 4px;

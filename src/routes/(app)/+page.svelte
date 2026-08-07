@@ -3,6 +3,7 @@
 	import { api } from '$lib/api';
 	import ObligationTable from '$lib/components/obligation/ObligationTable.svelte';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
+	import KpiCard from '$lib/components/ui/KpiCard.svelte';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
 
 	let snapshot = null;
@@ -28,31 +29,31 @@
 
 {#if snapshot}
 	<div class="kpi-grid">
-		<div class="card kpi">
-			<span class="kpi-label">Due this week</span>
-			<span class="kpi-value">{snapshot.upcoming.length}</span>
-			<span class="kpi-sub">{formatMoney(upcomingTotal)}</span>
-		</div>
-		<div class="card kpi">
-			<span class="kpi-label">Overdue</span>
-			<span class="kpi-value">{snapshot.overdue.length}</span>
-			<span class="kpi-sub">{formatMoney(overdueTotal)}</span>
-		</div>
-		<div class="card kpi">
-			<span class="kpi-label">Received, not paid</span>
-			<span class="kpi-value">{snapshot.received.length}</span>
-			<span class="kpi-sub">{formatMoney(receivedTotal)}</span>
-		</div>
-		<div class="card kpi">
-			<span class="kpi-label">Outstanding billbacks</span>
-			<span class="kpi-value">{snapshot.billbacks.length}</span>
-			<span class="kpi-sub">{formatMoney(snapshot.billbackTotal)}</span>
-		</div>
-		<div class="card kpi">
-			<span class="kpi-label">Cash needed this month</span>
-			<span class="kpi-value">{formatMoney(snapshot.cashThisMonth)}</span>
-			<span class="kpi-sub">across entities</span>
-		</div>
+		<KpiCard
+			label="Due this week"
+			value={snapshot.upcoming.length}
+			sub={formatMoney(upcomingTotal)}
+		/>
+		<KpiCard
+			label="Overdue"
+			value={snapshot.overdue.length}
+			sub={formatMoney(overdueTotal)}
+		/>
+		<KpiCard
+			label="Received, not paid"
+			value={snapshot.received.length}
+			sub={formatMoney(receivedTotal)}
+		/>
+		<KpiCard
+			label="Outstanding billbacks"
+			value={snapshot.billbacks.length}
+			sub={formatMoney(snapshot.billbackTotal)}
+		/>
+		<KpiCard
+			label="Cash needed this month"
+			value={formatMoney(snapshot.cashThisMonth)}
+			sub="across entities"
+		/>
 	</div>
 
 	<div class="grid-2">
@@ -143,32 +144,11 @@
 {/if}
 
 <style>
-	.subtitle {
-		color: var(--text-muted);
-		margin-top: 0;
-	}
 	.kpi-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 		gap: 1rem;
 		margin-bottom: 1.25rem;
-	}
-	.kpi {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-	}
-	.kpi-label {
-		font-size: 12px;
-		color: var(--text-muted);
-	}
-	.kpi-value {
-		font-size: 1.5rem;
-		font-weight: 700;
-	}
-	.kpi-sub {
-		font-size: 12px;
-		color: var(--text-muted);
 	}
 	.grid-2 {
 		margin-bottom: 1.25rem;
@@ -178,8 +158,5 @@
 		font-weight: 600;
 		color: var(--text-muted);
 		float: right;
-	}
-	.num {
-		text-align: right;
 	}
 </style>

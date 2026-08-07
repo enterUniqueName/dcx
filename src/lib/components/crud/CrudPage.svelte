@@ -164,28 +164,3 @@
 		onCancel={() => (pendingDelete = null)}
 	/>
 {/if}
-
-<style>
-	.subtitle {
-		color: var(--text-muted);
-		margin: 0;
-	}
-	.filters {
-		display: flex;
-		margin-bottom: 1rem;
-	}
-	.search {
-		max-width: 320px;
-	}
-	.num {
-		text-align: right;
-	}
-	.row-actions {
-		text-align: right;
-		white-space: nowrap;
-	}
-	.btn-small {
-		padding: 0.2rem 0.5rem;
-		font-size: 12px;
-	}
-</style>

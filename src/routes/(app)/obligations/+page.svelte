@@ -118,10 +118,6 @@
 {/if}
 
 <style>
-	.subtitle {
-		color: var(--text-muted);
-		margin: 0;
-	}
 	.filters {
 		display: flex;
 		flex-wrap: wrap;
