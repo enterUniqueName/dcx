@@ -19,6 +19,25 @@
 		'other'
 	];
 	const FREQUENCIES = ['one_time', 'monthly', 'quarterly', 'semi_annual', 'annual', 'custom'];
+	const WEEKDAYS = [
+		{ value: '0', label: 'Sunday' },
+		{ value: '1', label: 'Monday' },
+		{ value: '2', label: 'Tuesday' },
+		{ value: '3', label: 'Wednesday' },
+		{ value: '4', label: 'Thursday' },
+		{ value: '5', label: 'Friday' },
+		{ value: '6', label: 'Saturday' }
+	];
+	const OCCURRENCES = [
+		{ value: '1', label: '1st' },
+		{ value: '2', label: '2nd' },
+		{ value: '3', label: '3rd' },
+		{ value: '4', label: '4th' },
+		{ value: '5', label: '5th' },
+		{ value: '-1', label: 'Last' },
+		{ value: '-2', label: '2nd to last' },
+		{ value: '-3', label: '3rd to last' }
+	];
 
 	let entities = [];
 	let properties = [];
@@ -40,6 +59,9 @@
 		frequency: 'monthly',
 		interval_months: '1',
 		due_day: '',
+		weekday_rule: '',
+		weekday: '',
+		nth_occurrence: '',
 		next_due_date: toISODate(new Date()),
 		billing_start: '',
 		billing_end: '',
@@ -67,6 +89,9 @@
 				frequency: initial.frequency ?? 'monthly',
 				interval_months: initial.interval_months ?? '1',
 				due_day: initial.due_day ?? '',
+				weekday_rule: initial.weekday != null ? 'nth' : '',
+				weekday: initial.weekday != null ? String(initial.weekday) : '',
+				nth_occurrence: initial.nth_occurrence != null ? String(initial.nth_occurrence) : '',
 				next_due_date: initial.next_due_date ?? toISODate(new Date()),
 				billing_start: initial.billing_start ?? '',
 				billing_end: initial.billing_end ?? '',
@@ -99,6 +124,7 @@
 	}
 
 	function submit() {
+		const useWeekdayRule = form.weekday_rule === 'nth';
 		const payload = {
 			name: form.name.trim(),
 			description: form.description.trim() || null,
@@ -111,7 +137,9 @@
 			amount: num(form.amount),
 			frequency: form.frequency,
 			interval_months: form.frequency === 'custom' ? num(form.interval_months) : null,
-			due_day: form.due_day === '' ? null : num(form.due_day),
+			due_day: useWeekdayRule ? null : form.due_day === '' ? null : num(form.due_day),
+			weekday: useWeekdayRule ? num(form.weekday) : null,
+			nth_occurrence: useWeekdayRule ? num(form.nth_occurrence) : null,
 			next_due_date: form.next_due_date,
 			billing_start: form.billing_start || null,
 			billing_end: form.billing_end || null,
@@ -134,6 +162,10 @@
 		}
 		if (payload.frequency === 'custom' && (payload.interval_months === null || payload.interval_months < 1)) {
 			alert('Custom frequency needs a positive interval in months.');
+			return;
+		}
+		if (useWeekdayRule && (payload.weekday === null || payload.nth_occurrence === null)) {
+			alert('Weekday rule needs both a weekday and an occurrence.');
 			return;
 		}
 
@@ -179,8 +211,35 @@
 				<label for="ob-dueday">Day of month (optional)</label>
 				<input id="ob-dueday" class="input" type="number" min="1" max="31" bind:value={form.due_day} placeholder="1–31" />
 			</div>
+			<div class="field">
+				<label for="ob-weekday-rule">Weekday rule (optional)</label>
+				<select id="ob-weekday-rule" class="select" bind:value={form.weekday_rule}>
+					<option value="">None</option>
+					<option value="nth">Recur on a weekday of the month</option>
+				</select>
+			</div>
 		{/if}
 	</div>
+
+	{#if form.frequency !== 'custom' && form.weekday_rule === 'nth'}
+		<div class="field-row">
+			<div class="field">
+				<label for="ob-weekday">Weekday</label>
+				<select id="ob-weekday" class="select" bind:value={form.weekday}>
+					<option value="">—</option>
+					{#each WEEKDAYS as d}<option value={d.value}>{d.label}</option>{/each}
+				</select>
+			</div>
+			<div class="field">
+				<label for="ob-occ">Which occurrence</label>
+				<select id="ob-occ" class="select" bind:value={form.nth_occurrence}>
+					<option value="">—</option>
+					{#each OCCURRENCES as o}<option value={o.value}>{o.label}</option>{/each}
+				</select>
+			</div>
+		</div>
+		<p class="hint">e.g. "Wednesday — 2nd to last" = due the 2nd-to-last Wednesday of every month.</p>
+	{/if}
 
 	<div class="field">
 		<label for="ob-duedate">Next due date</label>
@@ -268,5 +327,10 @@
 		gap: 0.5rem;
 		font-size: 13px;
 		margin-bottom: 1rem;
+	}
+	.hint {
+		font-size: 12px;
+		color: var(--text-muted);
+		margin: -0.25rem 0 1rem;
 	}
 </style>
