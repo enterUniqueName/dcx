@@ -1,6 +1,7 @@
 <script>
 	import StatusBadge from '../ui/StatusBadge.svelte';
 	import DueChip from '../ui/DueChip.svelte';
+	import { base } from '$app/paths';
 	import { formatMoney } from '$lib/utils/format.js';
 
 	export let obligations = [];
@@ -29,7 +30,7 @@
 				{#each obligations as ob (ob.id)}
 					<tr>
 						<td>
-							<a href="/obligations/{ob.id}">{ob.name}</a>
+							<a href={`${base}/obligations/${ob.id}`}>{ob.name}</a>
 						</td>
 						<td>{ob.ownership_entity_name ?? '—'}</td>
 						<td>{ob.property_name ?? '—'}</td>

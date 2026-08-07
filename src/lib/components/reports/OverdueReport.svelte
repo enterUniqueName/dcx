@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import ReportTable from './ReportTable.svelte';
 	import { api } from '$lib/api';
 
@@ -34,5 +35,5 @@
 	{loading}
 	{error}
 	empty="No overdue obligations."
-	rowHref={(row) => `/obligations/${row.id}`}
+	rowHref={(row) => `${base}/obligations/${row.id}`}
 />

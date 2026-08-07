@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { api } from '$lib/api';
 	import ObligationTable from '$lib/components/obligation/ObligationTable.svelte';
 
@@ -80,7 +81,7 @@
 		<h1>Obligations</h1>
 		<p class="subtitle">Bills, utilities, taxes, insurance, loan payments, and work orders.</p>
 	</div>
-	<a class="btn btn-primary" href="/obligations/new">+ New obligation</a>
+	<a class="btn btn-primary" href={`${base}/obligations/new`}>+ New obligation</a>
 </div>
 
 <div class="filters">

@@ -8,6 +8,22 @@
 
 	$: isActive = (href) => $page.url.pathname === href;
 
+	const links = [
+		{ href: `${base}/`, label: 'Dashboard' },
+		{ href: `${base}/obligations`, label: 'Obligations' },
+		{ href: `${base}/payments`, label: 'Payments' },
+		{ href: `${base}/billbacks`, label: 'Billbacks' },
+		{ href: `${base}/documents`, label: 'Documents' },
+		{ href: `${base}/reports`, label: 'Reports' },
+		{ href: `${base}/entities`, label: 'Entities', section: 'Admin' },
+		{ href: `${base}/properties`, label: 'Properties' },
+		{ href: `${base}/tenants`, label: 'Tenants' },
+		{ href: `${base}/vendors`, label: 'Vendors' },
+		{ href: `${base}/loans`, label: 'Loans' },
+		{ href: `${base}/organizations`, label: 'Organizations' },
+		{ href: `${base}/settings`, label: 'Settings' }
+	];
+
 	async function onSignOut() {
 		await api.signOut();
 		goto(`${base}/auth/login`);
@@ -39,20 +55,10 @@
 		<aside class="sidebar">
 			<div class="brand">dcx</div>
 			<nav>
-				<a href="/" class:active={isActive('/')}>Dashboard</a>
-				<a href="/obligations" class:active={isActive('/obligations')}>Obligations</a>
-				<a href="/payments" class:active={isActive('/payments')}>Payments</a>
-				<a href="/billbacks" class:active={isActive('/billbacks')}>Billbacks</a>
-				<a href="/documents" class:active={isActive('/documents')}>Documents</a>
-				<a href="/reports" class:active={isActive('/reports')}>Reports</a>
-				<span class="nav-section">Admin</span>
-				<a href="/entities" class:active={isActive('/entities')}>Entities</a>
-				<a href="/properties" class:active={isActive('/properties')}>Properties</a>
-				<a href="/tenants" class:active={isActive('/tenants')}>Tenants</a>
-				<a href="/vendors" class:active={isActive('/vendors')}>Vendors</a>
-				<a href="/loans" class:active={isActive('/loans')}>Loans</a>
-				<a href="/organizations" class:active={isActive('/organizations')}>Organizations</a>
-				<a href="/settings" class:active={isActive('/settings')}>Settings</a>
+				{#each links as link (link.href)}
+					{#if link.section}<span class="nav-section">{link.section}</span>{/if}
+					<a href={link.href} class:active={isActive(link.href)}>{link.label}</a>
+				{/each}
 			</nav>
 		</aside>
 		<main class="content">

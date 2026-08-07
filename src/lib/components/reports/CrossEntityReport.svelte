@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import ReportTable from './ReportTable.svelte';
 	import { api } from '$lib/api';
 
@@ -33,5 +34,5 @@
 	{loading}
 	{error}
 	empty="No cross-entity payments."
-	rowHref={(row) => (row.obligation_id ? `/obligations/${row.obligation_id}` : null)}
+	rowHref={(row) => (row.obligation_id ? `${base}/obligations/${row.obligation_id}` : null)}
 />

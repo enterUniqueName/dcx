@@ -1,4 +1,5 @@
 <script>
+	import { base } from '$app/paths';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
 
 	export let payments = [];
@@ -34,7 +35,7 @@
 						{#if showObligation}
 							<td>
 								{#if p.obligation_name}
-									<a href="/obligations/{p.obligation_id}">{p.obligation_name}</a>
+									<a href={`${base}/obligations/${p.obligation_id}`}>{p.obligation_name}</a>
 								{:else}
 									<span class="muted">Billback settlement</span>
 								{/if}
