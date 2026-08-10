@@ -31,7 +31,7 @@ export async function getEntityProperties(entityId) {
 	return unwrap(
 		await supabase
 			.from('v_properties')
-			.select('nickname, name, city, state, property_type, unit_count, status')
+			.select('id, nickname, name, city, state, property_type, unit_count, status')
 			.eq('organization_id', orgId)
 			.eq('ownership_entity_id', entityId)
 			.order('name')
