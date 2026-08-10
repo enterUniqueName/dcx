@@ -43,7 +43,7 @@ export async function getEntityLoans(entityId) {
 	return unwrap(
 		await supabase
 			.from('v_loans')
-			.select('id, lender, loan_number, original_amount, interest_rate, monthly_payment, status')
+			.select('id, lender, loan_number, nickname, original_amount, interest_rate, monthly_payment, status')
 			.eq('organization_id', orgId)
 			.eq('ownership_entity_id', entityId)
 			.order('lender')

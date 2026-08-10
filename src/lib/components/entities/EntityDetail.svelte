@@ -64,8 +64,9 @@
 					<ul>
 						{#each loans as l (l.id)}
 							<li>
-								<b>{l.lender}{l.loan_number ? ` (${l.loan_number})` : ''}</b>
+								<b>{l.nickname || l.lender}</b>
 								<span>
+									{l.lender}{l.loan_number ? ` · #${l.loan_number}` : ''} ·
 									{formatMoney(l.monthly_payment ?? 0)}/mo · {l.status}
 								</span>
 							</li>

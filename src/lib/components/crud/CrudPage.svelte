@@ -25,6 +25,7 @@
 	export let remove = null;
 	export let loadReferences = null;
 	export let detail = null;
+	export let stickyFirst = false;
 
 	let rows = [];
 	let references = {};
@@ -105,6 +106,7 @@
 		if (col.format === 'money') return formatMoney(v);
 		if (col.format === 'date') return formatDate(v);
 		if (col.format === 'yesno') return v ? 'Yes' : 'No';
+		if (col.format === 'percent') return `${Number(v)}%`;
 		return String(v).replace(/_/g, ' ');
 	}
 
@@ -141,7 +143,7 @@
 			<thead>
 				<tr>
 					{#if detail}<th class="chev-cell"></th>{/if}
-					{#each columns as col (col.key)}<th>{col.label}</th>{/each}
+					{#each columns as col, i (col.key)}<th class:sticky={stickyFirst && i === 0}>{col.label}</th>{/each}
 					<th></th>
 				</tr>
 			</thead>
@@ -157,8 +159,11 @@
 								<span class="chev" class:open={expanded.has(row.id)}>▸</span>
 							</td>
 						{/if}
-						{#each columns as col (col.key)}
-							<td class={cellClass(col, row)}>{cell(row, col)}</td>
+						{#each columns as col, i (col.key)}
+							<td
+								class={cellClass(col, row)}
+								class:sticky={stickyFirst && i === 0}
+							>{cell(row, col)}</td>
 						{/each}
 						<td class="row-actions">
 							<button
@@ -232,6 +237,25 @@
 	}
 	tr.expanded-row,
 	tr.expanded-row:hover {
+		background: #eff6ff;
+	}
+	th.sticky,
+	td.sticky {
+		position: sticky;
+		left: 0;
+		z-index: 2;
+		background: var(--surface);
+		box-shadow: inset -1px 0 0 var(--border);
+	}
+	th.sticky {
+		z-index: 3;
+		background: #f9fafb;
+	}
+	tbody tr:hover td.sticky {
+		background: #f9fafb;
+	}
+	tr.expanded-row td.sticky,
+	tr.expanded-row:hover td.sticky {
 		background: #eff6ff;
 	}
 	.detail-row > td {

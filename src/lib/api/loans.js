@@ -5,7 +5,7 @@ import { getOrgId } from './context.js';
 export async function getLoans() {
 	const orgId = getOrgId();
 	return unwrap(
-		await supabase.from('v_loans').select('*').eq('organization_id', orgId).order('lender')
+		await supabase.from('v_loans').select('*').eq('organization_id', orgId).order('nickname')
 	);
 }
 

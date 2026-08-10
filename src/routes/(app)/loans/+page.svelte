@@ -3,16 +3,20 @@
 	import { api } from '$lib/api';
 
 	const columns = [
+		{ key: 'nickname', label: 'Nickname' },
 		{ key: 'lender', label: 'Lender' },
 		{ key: 'loan_number', label: 'Loan #' },
 		{ key: 'ownership_entity_name', label: 'Entity' },
 		{ key: 'property_name', label: 'Property' },
-		{ key: 'monthly_payment', label: 'Monthly payment', format: 'money' },
+		{ key: 'interest_rate', label: 'Rate', format: 'percent' },
+		{ key: 'monthly_payment', label: 'Monthly pmt', format: 'money' },
 		{ key: 'current_balance', label: 'Balance', format: 'money' },
+		{ key: 'maturity_date', label: 'Maturity', format: 'date' },
 		{ key: 'status', label: 'Status' }
 	];
 
 	const fields = [
+		{ key: 'nickname', label: 'Nickname', type: 'text' },
 		{ key: 'lender', label: 'Lender', type: 'text', required: true },
 		{ key: 'loan_number', label: 'Loan number', type: 'text' },
 		{ key: 'ownership_entity_id', label: 'Ownership entity', type: 'select', source: 'entities' },
@@ -57,6 +61,7 @@
 	{columns}
 	{fields}
 	{defaults}
+	stickyFirst
 	load={api.getLoans}
 	create={api.createLoan}
 	update={api.updateLoan}
