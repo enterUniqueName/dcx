@@ -1,1 +1,0 @@
-import"../chunks/Ggj6Xf9J.js";import"../chunks/xihTtKlq.js";import"../chunks/BrkeV19h.js";import{t as e}from"../chunks/DmZjvfh0.js";function t(t){e(t,{title:`Settings`,description:`Organization settings and defaults.`})}export{t as component};

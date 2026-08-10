@@ -1,1 +1,0 @@
-import"../chunks/Ggj6Xf9J.js";import"../chunks/xihTtKlq.js";import"../chunks/BrkeV19h.js";import{t as e}from"../chunks/DmZjvfh0.js";function t(t){e(t,{title:`Organizations`,description:`Tenants of this platform and their members.`})}export{t as component};
