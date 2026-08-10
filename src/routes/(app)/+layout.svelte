@@ -4,7 +4,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
-	import { authReady, orgsReady, user, organizations, activeOrganizationId } from '$lib/api/context.js';
+	import { authReady, orgsReady, user, organizations, activeOrganizationId, activeOrgRole } from '$lib/api/context.js';
 
 	// Highlight the current section: exact match for the dashboard, prefix
 	// match elsewhere so detail pages (e.g. /obligations/[id]) keep their
@@ -13,6 +13,9 @@
 		if (href === `${base}/`) return $page.url.pathname === `${base}/`;
 		return $page.url.pathname.startsWith(href);
 	};
+
+	// Admin-only nav (organizations) is hidden from everyone else.
+	$: isAdmin = ['owner', 'admin'].includes($activeOrgRole);
 
 	const links = [
 		{ href: `${base}/`, label: 'Dashboard' },
@@ -26,9 +29,29 @@
 		{ href: `${base}/tenants`, label: 'Tenants' },
 		{ href: `${base}/vendors`, label: 'Vendors' },
 		{ href: `${base}/loans`, label: 'Loans' },
-		{ href: `${base}/organizations`, label: 'Organizations' },
+		{ href: `${base}/organizations`, label: 'Organizations', adminOnly: true },
 		{ href: `${base}/settings`, label: 'Settings' }
 	];
+
+	$: visibleLinks = links.filter((l) => !l.adminOnly || isAdmin);
+
+	let newName = '';
+	let newSlug = '';
+	let creating = false;
+	let createError = '';
+
+	async function createOrg() {
+		creating = true;
+		createError = '';
+		try {
+			await api.createOrganization(newName, newSlug);
+			await api.refreshOrganizations();
+		} catch (e) {
+			createError = e.message;
+		} finally {
+			creating = false;
+		}
+	}
 
 	async function onSignOut() {
 		await api.signOut();
@@ -53,15 +76,24 @@
 	<div class="no-access">
 		<h1>No organization access yet</h1>
 		<p>
-			Your account isn't linked to an organization. Ask an administrator to add you, then refresh.
+			Create your own organization, or ask an administrator to add you and then refresh.
 		</p>
+		<form class="create-org" onsubmit={(e) => { e.preventDefault(); createOrg(); }}>
+			<input class="input" placeholder="Organization name (e.g. DCX)" bind:value={newName} required />
+			<input class="input" placeholder="Slug (e.g. dcx)" bind:value={newSlug} required />
+			<button class="btn btn-primary" disabled={creating}>
+				{creating ? 'Creating…' : 'Create organization'}
+			</button>
+		</form>
+		{#if createError}<p class="error-text">{createError}</p>{/if}
+		<button class="btn" onclick={() => location.reload()}>Refresh</button>
 	</div>
 {:else}
 	<div class="app">
 		<aside class="sidebar">
 			<div class="brand">dcx</div>
 			<nav>
-				{#each links as link (link.href)}
+				{#each visibleLinks as link (link.href)}
 					{#if link.section}<span class="nav-section">{link.section}</span>{/if}
 					<a href={link.href} class:active={isActive(link.href)}>{link.label}</a>
 				{/each}
@@ -97,6 +129,18 @@
 		margin: 6rem auto;
 		text-align: center;
 		padding: 1.5rem;
+	}
+	.no-access h1 {
+		margin: 0 0 0.5rem;
+	}
+	.no-access p {
+		color: var(--text-muted);
+		margin: 0 0 1.25rem;
+	}
+	.create-org {
+		display: grid;
+		gap: 0.6rem;
+		margin-bottom: 1rem;
 	}
 	.app {
 		display: flex;

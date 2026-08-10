@@ -17,6 +17,7 @@ export const session = writable(null);
 export const user = writable(null);
 export const organizations = writable([]);
 export const activeOrganizationId = writable(storedActiveOrg);
+export const activeOrgRole = writable(null);
 
 function applySession(sess) {
 	session.set(sess);
@@ -51,6 +52,29 @@ export async function signUp(email, password) {
 	const { data, error } = await supabase.auth.signUp({ email, password });
 	if (error) throw new Error(error.message);
 	return data;
+}
+
+// The caller's role in the active organization (drives admin-only UI).
+export async function refreshActiveOrgRole() {
+	const orgId = get(activeOrganizationId);
+	const currentUser = get(user);
+	if (!orgId || !currentUser) {
+		activeOrgRole.set(null);
+		return;
+	}
+	try {
+		const data = unwrap(
+			await supabase
+				.from('org_members')
+				.select('role')
+				.eq('organization_id', orgId)
+				.eq('user_id', currentUser.id)
+				.single()
+		);
+		activeOrgRole.set(data?.role ?? null);
+	} catch {
+		activeOrgRole.set(null);
+	}
 }
 
 // Load the caller's organizations and pick the active one:
@@ -91,6 +115,8 @@ export async function refreshOrganizations() {
 
 	orgsReady.set(true);
 
+	await refreshActiveOrgRole();
+
 	return data;
 }
 
@@ -101,6 +127,7 @@ export function setActiveOrganization(id) {
 	} catch {
 		// ignore
 	}
+	refreshActiveOrgRole();
 }
 
 // The organization every api.* call is scoped to. Falls back to the first

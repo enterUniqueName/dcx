@@ -28,6 +28,18 @@ export async function getMembers() {
 	);
 }
 
+// Full roster for the admin page (emails included). Admin-guarded server-side.
+export async function getOrgMembersDetail(orgId) {
+	return unwrap(await supabase.rpc('org_members_detail', { p_org: orgId }));
+}
+
+// Add someone to an org by email. Admin-guarded server-side.
+export async function inviteMember(orgId, email, role) {
+	return unwrap(
+		await supabase.rpc('invite_member', { p_org: orgId, p_email: email, p_role: role })
+	);
+}
+
 export async function addMember({ userId, role }) {
 	const orgId = getOrgId();
 	return unwrap(
@@ -35,8 +47,7 @@ export async function addMember({ userId, role }) {
 	);
 }
 
-export async function updateMemberRole(userId, role) {
-	const orgId = getOrgId();
+export async function updateMemberRole(orgId, userId, role) {
 	return unwrap(
 		await supabase
 			.from('org_members')
@@ -46,8 +57,7 @@ export async function updateMemberRole(userId, role) {
 	);
 }
 
-export async function removeMember(userId) {
-	const orgId = getOrgId();
+export async function removeMember(orgId, userId) {
 	return unwrap(
 		await supabase
 			.from('org_members')
