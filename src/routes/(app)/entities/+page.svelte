@@ -1,12 +1,16 @@
 <script>
 	import CrudPage from '$lib/components/crud/CrudPage.svelte';
+	import EntityDetail from '$lib/components/entities/EntityDetail.svelte';
 	import { api } from '$lib/api';
 
 	const columns = [
 		{ key: 'name', label: 'Name' },
 		{ key: 'entity_type', label: 'Type' },
-		{ key: 'ein', label: 'EIN' },
-		{ key: 'status', label: 'Status' }
+		{ key: 'property_count', label: 'Properties' },
+		{ key: 'rent_monthly', label: 'Rent/mo', format: 'money' },
+		{ key: 'loans_monthly', label: 'Loans/mo', format: 'money' },
+		{ key: 'billbacks_owed', label: 'Billbacks', format: 'money' },
+		{ key: 'net_monthly', label: 'Net/mo', format: 'money', signed: true }
 	];
 
 	const fields = [
@@ -23,25 +27,15 @@
 				{ value: 'other', label: 'Other' }
 			]
 		},
-		{ key: 'ein', label: 'EIN', type: 'text', placeholder: 'XX-XXXXXXX' },
-		{
-			key: 'status',
-			label: 'Status',
-			type: 'select',
-			options: [
-				{ value: 'active', label: 'Active' },
-				{ value: 'inactive', label: 'Inactive' }
-			]
-		},
 		{ key: 'notes', label: 'Notes', type: 'textarea' }
 	];
 
-	const defaults = { entity_type: 'llc', status: 'active' };
+	const defaults = { entity_type: 'llc' };
 </script>
 
 <CrudPage
 	title="Ownership Entities"
-	description="The LLCs, LPs, and trusts that own assets."
+	description="The LLCs, LPs, and trusts that own assets. Expand a row for its properties, loans, and billbacks."
 	{columns}
 	{fields}
 	{defaults}
@@ -49,4 +43,5 @@
 	create={api.createOwnershipEntity}
 	update={api.updateOwnershipEntity}
 	remove={api.deleteOwnershipEntity}
+	detail={EntityDetail}
 />

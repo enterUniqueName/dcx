@@ -7,11 +7,13 @@
 
 	// Config-driven CRUD list page.
 	//   title, description      page chrome
-	//   columns                 [{ key, label, format: 'text'|'money'|'date'|'yesno' }]
+	//   columns                 [{ key, label, format: 'text'|'money'|'date'|'yesno', signed }]
 	//   fields                  form field defs (see CrudForm)
 	//   defaults                values for new records
 	//   load/create/update/remove  async api functions
 	//   loadReferences          optional async () => { sourceKey: [{id, name}] }
+	//   detail                  optional Svelte component rendered in an
+	//                           expandable row; receives { row }
 	export let title = '';
 	export let description = '';
 	export let columns = [];
@@ -22,6 +24,7 @@
 	export let update = null;
 	export let remove = null;
 	export let loadReferences = null;
+	export let detail = null;
 
 	let rows = [];
 	let references = {};
@@ -32,6 +35,13 @@
 	let editing = null;
 	let saving = false;
 	let pendingDelete = null;
+	let expanded = new Set();
+
+	function toggleExpanded(id) {
+		expanded = new Set(
+			expanded.has(id) ? [...expanded].filter((x) => x !== id) : [...expanded, id]
+		);
+	}
 
 	onMount(loadData);
 
@@ -97,6 +107,14 @@
 		if (col.format === 'yesno') return v ? 'Yes' : 'No';
 		return String(v).replace(/_/g, ' ');
 	}
+
+	function cellClass(col, row) {
+		if (col.signed) {
+			const n = Number(row[col.key] ?? 0);
+			return n < 0 ? 'num neg' : 'num pos';
+		}
+		return col.format === 'money' ? 'num' : '';
+	}
 </script>
 
 <div class="page-header">
@@ -122,21 +140,50 @@
 		<table>
 			<thead>
 				<tr>
+					{#if detail}<th class="chev-cell"></th>{/if}
 					{#each columns as col (col.key)}<th>{col.label}</th>{/each}
 					<th></th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each filtered as row (row.id)}
-					<tr>
+					<tr
+						class:expanded-row={expanded.has(row.id)}
+						class:clickable={detail}
+						onclick={detail ? () => toggleExpanded(row.id) : undefined}
+					>
+						{#if detail}
+							<td class="chev-cell">
+								<span class="chev" class:open={expanded.has(row.id)}>▸</span>
+							</td>
+						{/if}
 						{#each columns as col (col.key)}
-							<td class:num={col.format === 'money'}>{cell(row, col)}</td>
+							<td class={cellClass(col, row)}>{cell(row, col)}</td>
 						{/each}
 						<td class="row-actions">
-							<button class="btn btn-small" onclick={() => openEdit(row)}>Edit</button>
-							<button class="btn btn-small btn-danger" onclick={() => (pendingDelete = row)}>Delete</button>
+							<button
+								class="btn btn-small"
+								onclick={(e) => {
+									e.stopPropagation();
+									openEdit(row);
+								}}
+							>Edit</button>
+							<button
+								class="btn btn-small btn-danger"
+								onclick={(e) => {
+									e.stopPropagation();
+									pendingDelete = row;
+								}}
+							>Delete</button>
 						</td>
 					</tr>
+					{#if detail && expanded.has(row.id)}
+						<tr class="detail-row">
+							<td colspan={columns.length + 2}>
+								<svelte:component this={detail} row={row} />
+							</td>
+						</tr>
+					{/if}
 				{/each}
 			</tbody>
 		</table>
@@ -164,3 +211,38 @@
 		onCancel={() => (pendingDelete = null)}
 	/>
 {/if}
+
+<style>
+	.chev-cell {
+		width: 2rem;
+		padding: 0 0 0 0.6rem;
+	}
+	.chev {
+		display: inline-block;
+		color: var(--text-muted);
+		transition: transform 0.12s ease;
+		font-size: 12px;
+		line-height: 1;
+	}
+	.chev.open {
+		transform: rotate(90deg);
+	}
+	tr.clickable {
+		cursor: pointer;
+	}
+	tr.expanded-row,
+	tr.expanded-row:hover {
+		background: #eff6ff;
+	}
+	.detail-row > td {
+		background: #f9fafb;
+		padding: 0;
+	}
+	.pos {
+		color: var(--ok);
+	}
+	.neg {
+		color: var(--danger);
+		font-weight: 600;
+	}
+</style>

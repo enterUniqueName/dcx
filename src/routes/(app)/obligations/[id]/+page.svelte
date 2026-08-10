@@ -174,6 +174,7 @@
 	<div class="card facts">
 		<div class="fact"><span>Entity</span><b>{obligation.ownership_entity_name ?? '—'}</b></div>
 		<div class="fact"><span>Property</span><b>{obligation.property_name ?? '—'}</b></div>
+		<div class="fact"><span>Tenant</span><b>{obligation.tenant_name ?? '—'}</b></div>
 		<div class="fact"><span>Vendor</span><b>{obligation.vendor_name ?? '—'}</b></div>
 		<div class="fact"><span>Loan</span><b>{obligation.loan_name ?? '—'}</b></div>
 		<div class="fact">

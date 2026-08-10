@@ -49,14 +49,14 @@ on conflict (organization_id) do nothing;
 -- ---------------------------------------------------------------------------
 -- Ownership entities (7 real — from entities CSV)
 -- ---------------------------------------------------------------------------
-insert into ownership_entities (id, organization_id, name, entity_type, status) values
-  ('21000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', 'JenCal LLC', 'llc', 'active'),
-  ('21000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', 'Fritts Price LLC', 'llc', 'active'),
-  ('21000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '901 5th St LLC', 'llc', 'active'),
-  ('21000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', 'Casa Nueva LLC', 'llc', 'active'),
-  ('21000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', 'Calfee & Barney LLC', 'llc', 'active'),
-  ('21000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', 'PLB LLC', 'llc', 'active'),
-  ('21000000-0000-4000-8000-000000000007', '11000000-0000-4000-8000-000000000001', 'Daryl W Calfee', 'individual', 'active')
+insert into ownership_entities (id, organization_id, name, entity_type) values
+  ('21000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', 'JenCal LLC', 'llc'),
+  ('21000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', 'Fritts Price LLC', 'llc'),
+  ('21000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '901 5th St LLC', 'llc'),
+  ('21000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', 'Casa Nueva LLC', 'llc'),
+  ('21000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', 'Calfee & Barney LLC', 'llc'),
+  ('21000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', 'PLB LLC', 'llc'),
+  ('21000000-0000-4000-8000-000000000007', '11000000-0000-4000-8000-000000000001', 'Daryl W Calfee', 'individual')
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -151,25 +151,61 @@ insert into vendors (id, organization_id, name, category, email, phone, active) 
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- [DEMO] Tenants — replace with real tenants
+-- [DEMO] Tenants — replace with real tenants. Responsibility flags record who
+-- is contractually on the hook per the lease. Defaults: landlord pays
+-- water/HVAC/CAM; tenant pays electric/internet. Exceptions shown: ownership
+-- pays Rivera's electric; Maria's Cafe pays its own water; Elm Street Gym
+-- pays CAM.
 -- ---------------------------------------------------------------------------
-insert into tenants (id, organization_id, property_id, name, email, phone, status, move_in_date) values
-  ('51000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000003', '[DEMO] The Rivera Family', 'demo.rivera@example.com', '555-0201', 'active', '2025-06-01'),
-  ('51000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000006', '[DEMO] Maria''s Cafe', 'demo.marias@example.com', '555-0202', 'active', '2024-03-15'),
-  ('51000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000005', '[DEMO] Bluebird Boutique', 'demo.bluebird@example.com', '555-0203', 'active', '2025-09-01'),
-  ('51000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000016', '[DEMO] Patel Family', 'demo.patel@example.com', '555-0204', 'active', '2024-11-01'),
-  ('51000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000002', '[DEMO] Copper Kettle Diner', 'demo.copper@example.com', '555-0205', 'active', '2023-07-01'),
-  ('51000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000014', '[DEMO] Elm Street Gym', 'demo.elm@example.com', '555-0206', 'active', '2025-01-15')
+insert into tenants (id, organization_id, property_id, name, email, phone, status, responsible_water, responsible_electric, responsible_internet, responsible_hvac, responsible_cam) values
+  ('51000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000003', '[DEMO] The Rivera Family', 'demo.rivera@example.com', '555-0201', 'active', false, false, true, false, false),
+  ('51000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000006', '[DEMO] Maria''s Cafe', 'demo.marias@example.com', '555-0202', 'active', true, true, true, false, false),
+  ('51000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000005', '[DEMO] Bluebird Boutique', 'demo.bluebird@example.com', '555-0203', 'active', false, true, true, false, false),
+  ('51000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000016', '[DEMO] Patel Family', 'demo.patel@example.com', '555-0204', 'active', false, true, true, false, false),
+  ('51000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000002', '[DEMO] Copper Kettle Diner', 'demo.copper@example.com', '555-0205', 'active', false, true, true, false, false),
+  ('51000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', '31000000-0000-4000-8000-000000000014', '[DEMO] Elm Street Gym', 'demo.elm@example.com', '555-0206', 'active', false, true, true, false, true)
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- [DEMO] Leases — Google Drive link + term, one per tenant (replace with real)
+-- ---------------------------------------------------------------------------
+insert into leases (id, organization_id, tenant_id, url, lease_start, lease_end, notes) values
+  ('52000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000001', 'https://drive.google.com/file/d/DEMO-RIVERA-LEASE/view', '2025-06-01', '2026-05-31', '[DEMO] lease document'),
+  ('52000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000002', 'https://drive.google.com/file/d/DEMO-MARIAS-LEASE/view', '2024-03-15', '2025-03-14', '[DEMO] lease document'),
+  ('52000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000003', 'https://drive.google.com/file/d/DEMO-BLUEBIRD-LEASE/view', '2025-09-01', '2026-08-31', '[DEMO] lease document'),
+  ('52000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000004', 'https://drive.google.com/file/d/DEMO-PATEL-LEASE/view', '2024-11-01', '2025-10-31', '[DEMO] lease document'),
+  ('52000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000005', 'https://drive.google.com/file/d/DEMO-COPPER-LEASE/view', '2023-07-01', '2026-06-30', '[DEMO] lease document'),
+  ('52000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000006', 'https://drive.google.com/file/d/DEMO-ELM-LEASE/view', '2025-01-15', '2026-01-14', '[DEMO] lease document')
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------------
+-- [DEMO] Rent schedule — period_end null = current period. Rivera has an intro
+-- rate (first 3 months) then base rent, then a CPI bump at renewal; Copper
+-- Kettle has a CPI bump too. Replace with real lease terms.
+-- ---------------------------------------------------------------------------
+insert into rent_schedule (id, organization_id, tenant_id, period_start, period_end, amount, cpi_percent, notes) values
+  ('53000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000001', '2025-06-01', '2025-08-31', 1500.00, null, '[DEMO] intro rate — first 3 months'),
+  ('53000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000001', '2025-09-01', '2026-05-31', 1700.00, null, '[DEMO] base rent'),
+  ('53000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000001', '2026-06-01', null, 1742.50, 2.500, '[DEMO] CPI applied at renewal'),
+  ('53000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000002', '2024-04-01', null, 13000.00, null, null),
+  ('53000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000003', '2025-09-01', null, 1600.00, null, null),
+  ('53000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000004', '2024-11-01', '2025-03-31', 2200.00, null, '[DEMO] intro rate — first 5 months'),
+  ('53000000-0000-4000-8000-000000000007', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000004', '2025-04-01', null, 2400.00, null, null),
+  ('53000000-0000-4000-8000-000000000008', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000005', '2023-07-01', '2026-06-30', 1850.00, null, null),
+  ('53000000-0000-4000-8000-000000000009', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000005', '2026-07-01', null, 1905.50, 3.000, '[DEMO] CPI applied'),
+  ('53000000-0000-4000-8000-000000000010', '11000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000006', '2025-01-15', null, 3200.00, null, null)
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
 -- [DEMO] Recurring obligations — replace with real bills
 -- ---------------------------------------------------------------------------
-insert into obligations (id, organization_id, ownership_entity_id, property_id, vendor_id, name, description, category, amount, frequency, interval_months, due_day, weekday, nth_occurrence, next_due_date, status, variable_amount, notes) values
-  ('71000000-0000-4000-8000-000000000027', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000002', '[DEMO] Electric — 309 Hancock', 'Monthly electric service (dummy)', 'electric', 180.00, 'monthly', 1, 20, null, null, '2026-08-20', 'open', true, null),
-  ('71000000-0000-4000-8000-000000000028', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000006', '61000000-0000-4000-8000-000000000003', '[DEMO] Water & Sewer — Motor Co', 'Monthly water/sewer due the 2nd-to-last Wednesday', 'water', 95.00, 'monthly', 1, null, 3, -2, '2026-08-19', 'open', true, null),
-  ('71000000-0000-4000-8000-000000000029', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000004', '[DEMO] HVAC Maintenance — Tacos2', 'Monthly HVAC maintenance (dummy)', 'maintenance', 120.00, 'monthly', 1, 25, null, null, '2026-08-25', 'open', false, null),
-  ('71000000-0000-4000-8000-000000000030', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000004', '61000000-0000-4000-8000-000000000001', '[DEMO] Liability Insurance — Teachable Moments', 'Annual liability policy (dummy)', 'insurance', 2400.00, 'annual', null, 15, null, null, '2026-10-15', 'open', false, null)
+-- Ownership pays Rivera's electric bill on their behalf, so the obligation is
+-- linked to the tenant as well as the property for visibility.
+insert into obligations (id, organization_id, ownership_entity_id, property_id, vendor_id, tenant_id, name, description, category, amount, frequency, interval_months, due_day, weekday, nth_occurrence, next_due_date, status, variable_amount, notes) values
+  ('71000000-0000-4000-8000-000000000027', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000002', '51000000-0000-4000-8000-000000000001', '[DEMO] Electric — 309 Hancock', 'Monthly electric service (dummy)', 'electric', 180.00, 'monthly', 1, 20, null, null, '2026-08-20', 'open', true, null),
+  ('71000000-0000-4000-8000-000000000028', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000006', '61000000-0000-4000-8000-000000000003', null, '[DEMO] Water & Sewer — Motor Co', 'Monthly water/sewer due the 2nd-to-last Wednesday', 'water', 95.00, 'monthly', 1, null, 3, -2, '2026-08-19', 'open', true, null),
+  ('71000000-0000-4000-8000-000000000029', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000004', null, '[DEMO] HVAC Maintenance — Tacos2', 'Monthly HVAC maintenance (dummy)', 'maintenance', 120.00, 'monthly', 1, 25, null, null, '2026-08-25', 'open', false, null),
+  ('71000000-0000-4000-8000-000000000030', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000004', '61000000-0000-4000-8000-000000000001', null, '[DEMO] Liability Insurance — Teachable Moments', 'Annual liability policy (dummy)', 'insurance', 2400.00, 'annual', null, 15, null, null, '2026-10-15', 'open', false, null)
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -196,6 +232,8 @@ on conflict (id) do nothing;
 --   delete from payments  where reference like 'DEMO-%';
 --   delete from billbacks where description like '[DEMO]%';
 --   delete from obligations where name like '[DEMO]%';
+--   delete from rent_schedule where tenant_id in (select id from tenants where name like '[DEMO]%');
+--   delete from leases where tenant_id in (select id from tenants where name like '[DEMO]%');
 --   delete from tenants  where name like '[DEMO]%';
 --   delete from vendors  where name like '[DEMO]%';
 -- ---------------------------------------------------------------------------

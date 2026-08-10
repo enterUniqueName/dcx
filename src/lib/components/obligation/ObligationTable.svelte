@@ -23,6 +23,7 @@
 					<th>Name</th>
 					<th>Entity</th>
 					<th>Property</th>
+					<th>Tenant</th>
 					<th>Category</th>
 					<th>Due</th>
 					<th class="num">Amount</th>
@@ -38,6 +39,7 @@
 						</td>
 						<td>{ob.ownership_entity_name ?? '—'}</td>
 						<td>{ob.property_name ?? '—'}</td>
+						<td>{ob.tenant_name ?? '—'}</td>
 						<td>{ob.category}</td>
 						<td><DueChip dueDate={ob.next_due_date} /></td>
 						<td class="num">

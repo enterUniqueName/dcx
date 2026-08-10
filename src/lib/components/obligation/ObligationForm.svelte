@@ -291,12 +291,22 @@
 
 	<div class="field-row">
 		<div class="field">
+			<label for="ob-tenant">Tenant (if a specific tenant's bill)</label>
+			<select id="ob-tenant" class="select" bind:value={form.tenant_id}>
+				<option value="">—</option>
+				{#each tenants as t}<option value={t.id}>{t.name}</option>{/each}
+			</select>
+		</div>
+		<div class="field">
 			<label for="ob-variable">Amount type</label>
 			<label class="check">
 				<input id="ob-variable" type="checkbox" bind:checked={form.variable_amount} />
 				Variable (estimate from last 3 bills)
 			</label>
 		</div>
+	</div>
+
+	<div class="field-row">
 		<div class="field">
 			<label for="ob-bstart">Billing start (optional)</label>
 			<input id="ob-bstart" class="input" type="date" bind:value={form.billing_start} />
