@@ -26,6 +26,14 @@
 	let pendingRemove = null;
 	let removing = false;
 
+	let accessByOrg = {};
+	let entitiesByOrg = {};
+	let accessLoading = new Set();
+	let grantForms = {};
+	let grantBusy = new Set();
+	let pendingRevoke = null;
+	let revoking = false;
+
 	let showCreate = false;
 	let newOrg = { name: '', slug: '' };
 	let creating = false;
@@ -52,7 +60,10 @@
 		);
 		if (expanded.has(id)) {
 			if (!invites[id]) invites[id] = { email: '', role: 'member' };
+			if (!grantForms[id]) grantForms[id] = { email: '', entityId: '' };
 			if (!membersByOrg[id]) loadMembers(id);
+			if (!accessByOrg[id]) loadAccess(id);
+			if (!entitiesByOrg[id]) loadEntities(id);
 		}
 	}
 
@@ -66,6 +77,65 @@
 			error = e.message;
 		} finally {
 			membersLoading = new Set([...membersLoading].filter((x) => x !== orgId));
+		}
+	}
+
+	async function loadAccess(orgId) {
+		accessLoading = new Set([...accessLoading, orgId]);
+		error = '';
+		try {
+			accessByOrg[orgId] = await api.getEntityAccessDetail(orgId);
+			accessByOrg = { ...accessByOrg };
+		} catch (e) {
+			error = e.message;
+		} finally {
+			accessLoading = new Set([...accessLoading].filter((x) => x !== orgId));
+		}
+	}
+
+	async function loadEntities(orgId) {
+		error = '';
+		try {
+			entitiesByOrg[orgId] = await api.getOrgEntities(orgId);
+			entitiesByOrg = { ...entitiesByOrg };
+		} catch (e) {
+			error = e.message;
+		}
+	}
+
+	async function doGrant(orgId) {
+		const form = grantForms[orgId];
+		if (!form?.email?.trim() || !form.entityId) return;
+		grantBusy = new Set([...grantBusy, orgId]);
+		error = '';
+		success = '';
+		try {
+			await api.grantEntityAccess(orgId, form.email.trim(), form.entityId);
+			grantForms[orgId] = { email: '', entityId: '' };
+			grantForms = { ...grantForms };
+			success = 'Access granted.';
+			await loadAccess(orgId);
+		} catch (e) {
+			error = e.message;
+		} finally {
+			grantBusy = new Set([...grantBusy].filter((x) => x !== orgId));
+		}
+	}
+
+	async function confirmRevoke() {
+		const { orgId, grant } = pendingRevoke;
+		revoking = true;
+		error = '';
+		success = '';
+		try {
+			await api.revokeEntityAccess(orgId, grant.user_id);
+			pendingRevoke = null;
+			success = 'Access revoked.';
+			await loadAccess(orgId);
+		} catch (e) {
+			error = e.message;
+		} finally {
+			revoking = false;
 		}
 	}
 
@@ -238,6 +308,66 @@
 									>{inviteBusy.has(org.id) ? 'Inviting…' : 'Invite'}</button>
 								</form>
 							{/if}
+
+							<h4 class="section-title">Entity access</h4>
+							{#if accessLoading.has(org.id)}
+								<p class="muted">Loading access…</p>
+							{:else}
+								{#if (accessByOrg[org.id] ?? []).length === 0}
+									<p class="muted">No entity grants.</p>
+								{:else}
+									<table>
+										<thead>
+											<tr>
+												<th>Entity</th>
+												<th>Name</th>
+												<th>Email</th>
+												<th>Role</th>
+												<th></th>
+											</tr>
+										</thead>
+										<tbody>
+											{#each accessByOrg[org.id] ?? [] as grant (`${grant.user_id}-${grant.ownership_entity_id}`)}
+												<tr>
+													<td>{grant.entity_name}</td>
+													<td>{grant.display_name ?? '—'}</td>
+													<td>{grant.email}</td>
+													<td>{grant.role}</td>
+													<td class="row-actions">
+														<button
+															class="btn btn-small btn-danger"
+															onclick={() => (pendingRevoke = { orgId: org.id, org, grant })}
+														>Revoke</button>
+													</td>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								{/if}
+
+								<form class="invite" onsubmit={(e) => { e.preventDefault(); doGrant(org.id); }}>
+									<input
+										class="input"
+										type="email"
+										placeholder="Partner email"
+										bind:value={grantForms[org.id].email}
+										required
+									/>
+									<select
+										class="select entity-select"
+										bind:value={grantForms[org.id].entityId}
+										required
+									>
+										<option value="" disabled>Select entity</option>
+										{#each entitiesByOrg[org.id] ?? [] as e (e.id)}
+											<option value={e.id}>{e.name}</option>
+										{/each}
+									</select>
+									<button class="btn" disabled={grantBusy.has(org.id)}>
+										{grantBusy.has(org.id) ? 'Granting…' : 'Grant access'}
+									</button>
+								</form>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -280,6 +410,17 @@
 			busy={removing}
 			onConfirm={confirmRemove}
 			onCancel={() => (pendingRemove = null)}
+		/>
+	{/if}
+
+	{#if pendingRevoke}
+		<ConfirmDialog
+			title="Revoke entity access"
+			message={`Revoke ${pendingRevoke.grant.email}'s access to ${pendingRevoke.grant.entity_name}? They will no longer be a member of ${pendingRevoke.org.name}.`}
+			confirmLabel="Revoke"
+			busy={revoking}
+			onConfirm={confirmRevoke}
+			onCancel={() => (pendingRevoke = null)}
 		/>
 	{/if}
 {/if}
@@ -341,6 +482,12 @@
 	}
 	.role-select {
 		width: auto;
+	}
+	.section-title {
+		margin-top: 1.25rem;
+	}
+	.entity-select {
+		max-width: 260px;
 	}
 	.invite {
 		display: flex;

@@ -71,3 +71,33 @@ export async function removeMember(orgId, userId) {
 export async function createOrganization({ name, slug }) {
 	return unwrap(await supabase.rpc('create_organization', { p_name: name, p_slug: slug }));
 }
+
+// Entities of a specific org (not the active one) for the entity-access form.
+export async function getOrgEntities(orgId) {
+	return unwrap(
+		await supabase
+			.from('v_entity_summary')
+			.select('*')
+			.eq('organization_id', orgId)
+			.order('name')
+	);
+}
+
+// Entity-scoped partner access (000014). Admin-guarded server-side.
+export async function getEntityAccessDetail(orgId) {
+	return unwrap(await supabase.rpc('entity_access_detail', { p_org: orgId }));
+}
+
+export async function grantEntityAccess(orgId, email, entityId) {
+	return unwrap(
+		await supabase.rpc('grant_entity_access', {
+			p_org: orgId,
+			p_email: email,
+			p_entity: entityId
+		})
+	);
+}
+
+export async function revokeEntityAccess(orgId, userId) {
+	return unwrap(await supabase.rpc('revoke_entity_access', { p_org: orgId, p_user: userId }));
+}
