@@ -7,15 +7,17 @@
 
 	let properties = [];
 	let loans = [];
+	let obligations = [];
 	let billbacks = [];
 	let loading = true;
 	let error = '';
 
 	onMount(async () => {
 		try {
-			[properties, loans, billbacks] = await Promise.all([
+			[properties, loans, obligations, billbacks] = await Promise.all([
 				api.getEntityProperties(row.id),
 				api.getEntityLoans(row.id),
+				api.getEntityObligations(row.id),
 				api.getEntityBillbacks(row.id)
 			]);
 		} catch (e) {
@@ -68,6 +70,27 @@
 								<span>
 									{l.lender}{l.loan_number ? ` · #${l.loan_number}` : ''} ·
 									{formatMoney(l.monthly_payment ?? 0)}/mo · {l.status}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+
+			<div class="section">
+				<h3>Obligations</h3>
+				{#if obligations.length === 0}
+					<p class="muted">No open obligations</p>
+				{:else}
+					<ul>
+						{#each obligations as o (o.id)}
+							<li>
+								<b>{o.name}</b>
+								<span>
+									{o.category.replace('_', ' ')}
+									{o.property_name ? ` · ${o.property_name}` : ''}
+									{o.vendor_name ? ` · ${o.vendor_name}` : ''}
+									· due {formatDate(o.next_due_date)} · {formatMoney(o.est_amount ?? o.amount)}
 								</span>
 							</li>
 						{/each}

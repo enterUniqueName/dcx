@@ -63,6 +63,22 @@ export async function getEntityBillbacks(entityId) {
 	);
 }
 
+// Open obligations for a single entity (upcoming first).
+export async function getEntityObligations(entityId) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase
+			.from('v_obligations')
+			.select(
+				'id, name, category, amount, est_amount, next_due_date, status, property_name, vendor_name'
+			)
+			.eq('organization_id', orgId)
+			.eq('ownership_entity_id', entityId)
+			.eq('status', 'open')
+			.order('next_due_date')
+	);
+}
+
 export async function createOwnershipEntity(data) {
 	const orgId = getOrgId();
 	return unwrap(

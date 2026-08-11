@@ -10,6 +10,9 @@
 		{ key: 'state', label: 'State' },
 		{ key: 'property_type', label: 'Type' },
 		{ key: 'unit_count', label: 'Units' },
+		{ key: 'annual_tax', label: 'Annual tax', format: 'money' },
+		{ key: 'tax_next_amount', label: 'Next tax', format: 'money' },
+		{ key: 'tax_next_due_date', label: 'Next tax due', format: 'date' },
 		{ key: 'status', label: 'Status' }
 	];
 
@@ -35,6 +38,7 @@
 			]
 		},
 		{ key: 'unit_count', label: 'Unit count', type: 'number', min: 0 },
+		{ key: 'annual_tax', label: 'Annual real estate tax', type: 'number', min: 0, step: '0.01' },
 		{
 			key: 'status',
 			label: 'Status',
