@@ -185,7 +185,7 @@
 					{#each columns as col, i (col.key)}
 						<th
 							class:sticky={stickyFirst && i === 0}
-							class:sortable
+							class:sortable={true}
 							class:sorted={sortKey === col.key}
 							onclick={() => sort(col)}
 						>{col.label}{#if sortKey === col.key}<span class="sort-ind">{sortDir === 'asc' ? '▲' : '▼'}</span>{/if}</th>
