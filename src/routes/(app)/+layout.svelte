@@ -36,8 +36,7 @@
 		{ href: `${base}/tenants`, label: 'Tenants' },
 		{ href: `${base}/vendors`, label: 'Vendors' },
 		{ href: `${base}/loans`, label: 'Loans' },
-		{ href: `${base}/organizations`, label: 'Organizations', adminOnly: true },
-		{ href: `${base}/settings`, label: 'Settings' }
+		{ href: `${base}/organizations`, label: 'Organizations', adminOnly: true }
 	];
 
 	$: visibleLinks = links.filter((l) => !l.adminOnly || isAdmin);
