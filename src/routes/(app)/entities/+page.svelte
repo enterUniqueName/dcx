@@ -44,4 +44,5 @@
 	update={api.updateOwnershipEntity}
 	remove={api.deleteOwnershipEntity}
 	detail={EntityDetail}
+	stickyFirst
 />

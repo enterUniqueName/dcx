@@ -82,4 +82,5 @@
 	remove={api.deleteTenant}
 	loadReferences={async () => ({ properties: await api.getProperties() })}
 	detail={TenantDetail}
+	stickyFirst
 />

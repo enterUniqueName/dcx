@@ -48,4 +48,5 @@
 	create={api.createVendor}
 	update={api.updateVendor}
 	remove={api.deleteVendor}
+	stickyFirst
 />

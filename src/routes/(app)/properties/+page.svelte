@@ -63,4 +63,5 @@
 	update={api.updateProperty}
 	remove={api.deleteProperty}
 	loadReferences={async () => ({ entities: await api.getOwnershipEntities() })}
+	stickyFirst
 />

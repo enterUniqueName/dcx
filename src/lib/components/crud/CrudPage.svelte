@@ -37,6 +37,34 @@
 	let saving = false;
 	let pendingDelete = null;
 	let expanded = new Set();
+	let sortKey = '';
+	let sortDir = 'asc';
+
+	function sort(col) {
+		if (sortKey === col.key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = col.key;
+			sortDir = 'asc';
+		}
+	}
+
+	function sortValue(v, col) {
+		if (v === null || v === undefined || v === '') return null;
+		if (col.format === 'money' || col.format === 'percent' || col.format === 'yesno') return Number(v);
+		if (col.format === 'date') return new Date(v).getTime();
+		return String(v).toLowerCase();
+	}
+
+	function compareRows(a, b, col) {
+		const av = sortValue(a[col.key], col);
+		const bv = sortValue(b[col.key], col);
+		if (av === null && bv === null) return 0;
+		if (av === null) return 1;
+		if (bv === null) return -1;
+		if (typeof av === 'number' && typeof bv === 'number') return av - bv;
+		return av.localeCompare(bv, undefined, { numeric: true });
+	}
 
 	function toggleExpanded(id) {
 		expanded = new Set(
@@ -94,11 +122,22 @@
 		}
 	}
 
-	$: filtered = rows.filter((row) => {
+	$: filtered = (() => {
 		const q = search.trim().toLowerCase();
-		if (!q) return true;
-		return columns.some((c) => String(row[c.key] ?? '').toLowerCase().includes(q));
-	});
+		const list = q
+			? rows.filter((row) =>
+					columns.some((c) => String(row[c.key] ?? '').toLowerCase().includes(q))
+				)
+			: [...rows];
+		if (sortKey) {
+			const col = columns.find((c) => c.key === sortKey);
+			if (col) {
+				const dir = sortDir === 'asc' ? 1 : -1;
+				list.sort((a, b) => compareRows(a, b, col) * dir);
+			}
+		}
+		return list;
+	})();
 
 	function cell(row, col) {
 		const v = row[col.key];
@@ -143,7 +182,14 @@
 			<thead>
 				<tr>
 					{#if detail}<th class="chev-cell"></th>{/if}
-					{#each columns as col, i (col.key)}<th class:sticky={stickyFirst && i === 0}>{col.label}</th>{/each}
+					{#each columns as col, i (col.key)}
+						<th
+							class:sticky={stickyFirst && i === 0}
+							class:sortable
+							class:sorted={sortKey === col.key}
+							onclick={() => sort(col)}
+						>{col.label}{#if sortKey === col.key}<span class="sort-ind">{sortDir === 'asc' ? '▲' : '▼'}</span>{/if}</th>
+					{/each}
 					<th></th>
 				</tr>
 			</thead>
@@ -218,6 +264,24 @@
 {/if}
 
 <style>
+	th.sortable {
+		cursor: pointer;
+		user-select: none;
+		white-space: nowrap;
+	}
+	th.sortable:hover {
+		background: #eef2f6;
+	}
+	th.sticky.sortable:hover {
+		background: #eef2f6;
+	}
+	th.sorted {
+		color: var(--text);
+	}
+	.sort-ind {
+		font-size: 10px;
+		margin-left: 0.3rem;
+	}
 	.chev-cell {
 		width: 2rem;
 		padding: 0 0 0 0.6rem;
