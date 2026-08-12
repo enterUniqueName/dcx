@@ -1,10 +1,17 @@
 <script>
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { authReady, orgsReady, user, organizations, activeOrganizationId, activeOrgRole } from '$lib/api/context.js';
+
+	// Mobile: the sidebar is an off-canvas drawer. Closed on navigation so a
+	// new page never shows it open on a narrow screen.
+	let sidebarOpen = false;
+	afterNavigate(() => {
+		sidebarOpen = false;
+	});
 
 	// Highlight the current section: exact match for the dashboard, prefix
 	// match elsewhere so detail pages (e.g. /obligations/[id]) keep their
@@ -90,17 +97,23 @@
 	</div>
 {:else}
 	<div class="app">
-		<aside class="sidebar">
+		{#if sidebarOpen}
+			<button class="overlay" aria-label="Close menu" onclick={() => (sidebarOpen = false)}></button>
+		{/if}
+		<aside class="sidebar" class:open={sidebarOpen}>
 			<div class="brand">dcx</div>
 			<nav>
 				{#each visibleLinks as link (link.href)}
 					{#if link.section}<span class="nav-section">{link.section}</span>{/if}
-					<a href={link.href} class:active={isActive(link.href)}>{link.label}</a>
+					<a href={link.href} class:active={isActive(link.href)} onclick={() => (sidebarOpen = false)}>{link.label}</a>
 				{/each}
 			</nav>
 		</aside>
 		<main class="content">
 			<header class="topbar">
+				<button class="btn hamburger" aria-label="Open menu" onclick={() => (sidebarOpen = true)}>
+					☰
+				</button>
 				<select
 					class="select org-switcher"
 					value={$activeOrganizationId ?? ''}
@@ -144,7 +157,9 @@
 	}
 	.app {
 		display: flex;
-		min-height: 100vh;
+		height: 100vh;
+		height: 100dvh;
+		overflow: hidden;
 	}
 	.sidebar {
 		width: 210px;
@@ -152,6 +167,7 @@
 		padding: 1rem;
 		background: var(--surface);
 		border-right: 1px solid var(--border);
+		overflow-y: auto;
 	}
 	.brand {
 		font-weight: 800;
@@ -189,13 +205,20 @@
 		flex: 1;
 		min-width: 0;
 		padding: 1.25rem 1.5rem 3rem;
+		overflow-y: auto;
 	}
 	.topbar {
+		position: sticky;
+		top: 0;
+		z-index: 5;
 		display: flex;
 		align-items: center;
 		gap: 0.85rem;
 		justify-content: flex-end;
 		margin-bottom: 1.5rem;
+		padding-bottom: 0.85rem;
+		background: var(--bg);
+		border-bottom: 1px solid var(--border);
 	}
 	.org-switcher {
 		width: auto;
@@ -204,5 +227,46 @@
 	.user {
 		color: var(--text-muted);
 		font-size: 13px;
+	}
+	.hamburger {
+		display: none;
+	}
+
+	@media (max-width: 900px) {
+		.sidebar {
+			position: fixed;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			z-index: 40;
+			width: 240px;
+			transform: translateX(-100%);
+			transition: transform 0.2s ease;
+			box-shadow: 0 0 24px rgba(0, 0, 0, 0.2);
+		}
+		.sidebar.open {
+			transform: translateX(0);
+		}
+		.overlay {
+			position: fixed;
+			inset: 0;
+			z-index: 30;
+			background: rgba(0, 0, 0, 0.35);
+			border: none;
+			padding: 0;
+		}
+		.hamburger {
+			display: inline-flex;
+			margin-right: auto;
+		}
+		.user {
+			display: none;
+		}
+		.org-switcher {
+			max-width: none;
+		}
+		.content {
+			padding: 0.85rem 1rem 3rem;
+		}
 	}
 </style>
