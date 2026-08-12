@@ -28,7 +28,7 @@
 	});
 
 	function propertyLabel(p) {
-		return p.nickname ? `${p.nickname} — ${p.name}` : p.name;
+		return p.name;
 	}
 </script>
 

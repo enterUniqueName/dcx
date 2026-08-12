@@ -3,7 +3,6 @@
 	import { api } from '$lib/api';
 
 	const columns = [
-		{ key: 'nickname', label: 'Nickname' },
 		{ key: 'name', label: 'Name' },
 		{ key: 'ownership_entity_name', label: 'Entity' },
 		{ key: 'city', label: 'City' },
@@ -17,7 +16,6 @@
 	];
 
 	const fields = [
-		{ key: 'nickname', label: 'Nickname', type: 'text' },
 		{ key: 'name', label: 'Name', type: 'text', required: true },
 		{ key: 'ownership_entity_id', label: 'Ownership entity', type: 'select', source: 'entities' },
 		{ key: 'address1', label: 'Address line 1', type: 'text' },

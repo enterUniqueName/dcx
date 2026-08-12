@@ -2,7 +2,7 @@
 --
 -- Data sources (exported 2026-08-03, imported into this file):
 --   * ownership entities CSV            -> 7 real entities
---   * properties CSV                    -> 16 real properties (name = address, nickname = short name)
+--   * properties CSV                    -> 16 real properties (name = address)
 --   * loans CSV                         -> 13 real loans (monthly payment = interest + principal; nickname from notes)
 -- Derived (from the real data above, not dummy):
 --   * 13 recurring loan-payment obligations  (one per loan)
@@ -27,7 +27,7 @@
 -- and the old demo seed (Demo Client Group) is removed first.
 --
 -- Ownership-entity assignment for properties/loans is a best-effort guess
--- (nickname hints + sensible defaults). Verify entity -> property ownership.
+-- (short-name hints + sensible defaults). Verify entity -> property ownership.
 --
 -- ---------------------------------------------------------------------------
 -- Remove rows created by the earlier demo seed (Demo Client Group). This
@@ -60,25 +60,25 @@ insert into ownership_entities (id, organization_id, name, entity_type) values
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- Properties (16 real — from properties CSV; name = address, nickname = short name)
+-- Properties (16 real — from properties CSV; name = address)
 -- ---------------------------------------------------------------------------
-insert into properties (id, organization_id, ownership_entity_id, name, nickname, address1, city, state, zip, property_type, unit_count, status, annual_tax, notes) values
-  ('31000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000002', '2307 Bedford Ave', 'Palmera House', '2307 Bedford Ave', 'Lynchburg', 'VA', '24503', 'residential', 1, 'active', 4200.00, null),
-  ('31000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2599 Fort Ave', 'Tacos2/Stadium District', '2599 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 1, 'active', 328.02, null),
-  ('31000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '309 Hancock St', '309 Hancock', '309 Hancock St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', null, null),
-  ('31000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '1915 Thomson Dr', 'Teachable Moments', '1915 Thomson Dr', 'Lynchburg', 'VA', '24501', 'commercial', 1, 'active', 1365.00, null),
-  ('31000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '313 Hancock St', '313 Hancock', '313 Hancock St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', null, null),
-  ('31000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '305 6th St', 'Motor Co', '305 6th St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 1586.76, null),
-  ('31000000-0000-4000-8000-000000000007', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000003', '901 Fifth St', '901 5th | Cutting Room', '901 Fifth St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 651.84, null),
-  ('31000000-0000-4000-8000-000000000008', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000001', '58 9th St', 'SuperRad', '58 9th St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 1035.30, null),
-  ('31000000-0000-4000-8000-000000000009', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2300 Bedford Ave', 'PLB Shop/Marshroots', '2300 Bedford Ave', 'Lynchburg', 'VA', '24503', 'commercial', 0, 'active', null, null),
-  ('31000000-0000-4000-8000-000000000010', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000001', '2309 Bedford Ave', 'Tacos#1 | Old Pizza Hut', '2309 Bedford Ave', 'Lynchburg', 'VA', '24503', 'commercial', 1, 'active', 550.20, null),
-  ('31000000-0000-4000-8000-000000000011', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2603 Fort Ave', 'Best Catch', '2603 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 0, 'active', 768.81, null),
-  ('31000000-0000-4000-8000-000000000012', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2597 Fort Ave', 'Tacos #2 Trailer | Storage Building', '2597 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 0, 'active', 144.90, null),
-  ('31000000-0000-4000-8000-000000000013', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '309 6th St', 'Parking Lot', '309 6th St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 235.83, null),
-  ('31000000-0000-4000-8000-000000000014', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000005', '5900 Fort Ave', 'Carpet Shop', '5900 Fort Ave', 'Lynchburg', 'VA', '24502', 'commercial', 0, 'active', 1227.24, null),
-  ('31000000-0000-4000-8000-000000000015', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000004', '2999 Fort Ave', 'Bee Line', '2999 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 0, 'active', 304.29, null),
-  ('31000000-0000-4000-8000-000000000016', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000004', '2995 Fort Ave', 'Casa Nueva', '2995 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 1, 'active', 326.55, null)
+insert into properties (id, organization_id, ownership_entity_id, name, address1, city, state, zip, property_type, unit_count, status, annual_tax, notes) values
+  ('31000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000002', '2307 Bedford Ave', '2307 Bedford Ave', 'Lynchburg', 'VA', '24503', 'residential', 1, 'active', 4200.00, null),
+  ('31000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2599 Fort Ave', '2599 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 1, 'active', 328.02, null),
+  ('31000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '309 Hancock St', '309 Hancock St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', null, null),
+  ('31000000-0000-4000-8000-000000000004', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '1915 Thomson Dr', '1915 Thomson Dr', 'Lynchburg', 'VA', '24501', 'commercial', 1, 'active', 1365.00, null),
+  ('31000000-0000-4000-8000-000000000005', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '313 Hancock St', '313 Hancock St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', null, null),
+  ('31000000-0000-4000-8000-000000000006', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '305 6th St', '305 6th St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 1586.76, null),
+  ('31000000-0000-4000-8000-000000000007', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000003', '901 Fifth St', '901 Fifth St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 651.84, null),
+  ('31000000-0000-4000-8000-000000000008', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000001', '58 9th St', '58 9th St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 1035.30, null),
+  ('31000000-0000-4000-8000-000000000009', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2300 Bedford Ave', '2300 Bedford Ave', 'Lynchburg', 'VA', '24503', 'commercial', 0, 'active', null, null),
+  ('31000000-0000-4000-8000-000000000010', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000001', '2309 Bedford Ave', '2309 Bedford Ave', 'Lynchburg', 'VA', '24503', 'commercial', 1, 'active', 550.20, null),
+  ('31000000-0000-4000-8000-000000000011', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2603 Fort Ave', '2603 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 0, 'active', 768.81, null),
+  ('31000000-0000-4000-8000-000000000012', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '2597 Fort Ave', '2597 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 0, 'active', 144.90, null),
+  ('31000000-0000-4000-8000-000000000013', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '309 6th St', '309 6th St', 'Lynchburg', 'VA', '24504', 'commercial', 0, 'active', 235.83, null),
+  ('31000000-0000-4000-8000-000000000014', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000005', '5900 Fort Ave', '5900 Fort Ave', 'Lynchburg', 'VA', '24502', 'commercial', 0, 'active', 1227.24, null),
+  ('31000000-0000-4000-8000-000000000015', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000004', '2999 Fort Ave', '2999 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 0, 'active', 304.29, null),
+  ('31000000-0000-4000-8000-000000000016', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000004', '2995 Fort Ave', '2995 Fort Ave', 'Lynchburg', 'VA', '24501', 'commercial', 1, 'active', 326.55, null)
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
