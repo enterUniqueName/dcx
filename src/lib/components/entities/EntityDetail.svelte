@@ -108,7 +108,7 @@
 							<li>
 								<b>{b.description}</b>
 								<span>
-									from {b.from_entity_name ?? '—'} · due {formatDate(b.due_date)} ·
+									{b.responsible_party_display ?? b.to_entity_name ?? '—'} owes {b.from_entity_name ?? '—'} · due {formatDate(b.due_date)} ·
 									{formatMoney(b.balance)} left
 								</span>
 							</li>

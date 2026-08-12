@@ -34,7 +34,7 @@
 
 <Modal title="Record billback payment" onClose={onClose}>
 	<p class="context">
-		{billback.from_entity_name} owes {billback.to_entity_name} · balance {formatMoney(billback.balance)}
+		{billback.responsible_party_display || billback.to_entity_name || 'Debtor'} owes {billback.from_entity_name} · balance {formatMoney(billback.balance)}
 	</p>
 	<div class="form-grid">
 		<div class="field">

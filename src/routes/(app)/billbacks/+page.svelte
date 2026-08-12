@@ -3,19 +3,19 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
-	import CrudForm from '$lib/components/crud/CrudForm.svelte';
+	import BillbackForm from '$lib/components/billback/BillbackForm.svelte';
 	import SettleBillbackModal from '$lib/components/billback/SettleBillbackModal.svelte';
 	import { api } from '$lib/api';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
 
 	let rows = [];
-	let entities = [];
 	let loading = true;
 	let error = '';
 	let showCreate = false;
 	let saving = false;
 	let settling = null;
 	let pendingDelete = null;
+	let hidePaid = false;
 
 	onMount(load);
 
@@ -23,7 +23,7 @@
 		loading = true;
 		error = '';
 		try {
-			[rows, entities] = await Promise.all([api.getBillbacks(), api.getOwnershipEntities()]);
+			rows = await api.getBillbacks();
 		} catch (e) {
 			error = e.message;
 		} finally {
@@ -31,17 +31,7 @@
 		}
 	}
 
-	const fields = [
-		{ key: 'from_ownership_entity_id', label: 'From entity', type: 'select', source: 'entities', required: true },
-		{ key: 'to_ownership_entity_id', label: 'To entity', type: 'select', source: 'entities', required: true },
-		{ key: 'description', label: 'Description', type: 'text' },
-		{ key: 'amount', label: 'Amount', type: 'number', min: 0.01, step: 0.01, required: true },
-		{ key: 'issued_date', label: 'Issued date', type: 'date' },
-		{ key: 'due_date', label: 'Due date', type: 'date' },
-		{ key: 'notes', label: 'Notes', type: 'textarea' }
-	];
-
-	const defaults = { issued_date: new Date().toISOString().slice(0, 10) };
+	$: visible = rows.filter((b) => !hidePaid || b.status !== 'paid');
 
 	async function createBillback(payload) {
 		saving = true;
@@ -77,26 +67,33 @@
 <div class="page-header">
 	<div>
 		<h1>Billbacks</h1>
-		<p class="subtitle">Reimbursements between ownership entities.</p>
+		<p class="subtitle">Reimburse a paid cost to the responsible tenant or ownership entity.</p>
 	</div>
 	<button class="btn btn-primary" onclick={() => (showCreate = true)}>+ New billback</button>
+</div>
+
+<div class="filters">
+	<label class="check">
+		<input type="checkbox" bind:checked={hidePaid} />
+		Hide paid items
+	</label>
 </div>
 
 {#if error}<p class="error-text">{error}</p>{/if}
 
 {#if loading}
 	<p class="empty">Loading…</p>
-{:else if rows.length === 0}
+{:else if visible.length === 0}
 	<p class="empty">No billbacks yet.</p>
 {:else}
 	<div class="table-wrap">
 		<table>
 			<thead>
 				<tr>
-					<th>From</th>
-					<th>To</th>
-					<th>Description</th>
-					<th>Due</th>
+					<th>Responsible party</th>
+					<th>Date</th>
+					<th>Memo / reason</th>
+					<th>Paid by</th>
 					<th class="num">Amount</th>
 					<th class="num">Paid</th>
 					<th class="num">Balance</th>
@@ -105,12 +102,19 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each rows as b (b.id)}
+				{#each visible as b (b.id)}
 					<tr>
+						<td>{b.responsible_party_display ?? '—'}</td>
+						<td>{formatDate(b.issued_date)}</td>
+						<td>
+							{b.description ?? '—'}
+							{#if b.check_number || b.vendor_name}
+								<span class="sub">
+									{#if b.vendor_name}{b.vendor_name}{/if}{#if b.check_number && b.vendor_name} · {/if}{#if b.check_number}check {b.check_number}{/if}
+								</span>
+							{/if}
+						</td>
 						<td>{b.from_entity_name}</td>
-						<td>{b.to_entity_name}</td>
-						<td>{b.description ?? '—'}</td>
-						<td>{formatDate(b.due_date)}</td>
 						<td class="num">{formatMoney(b.amount)}</td>
 						<td class="num">{formatMoney(b.amount_paid)}</td>
 						<td class="num">{formatMoney(b.balance)}</td>
@@ -129,15 +133,8 @@
 {/if}
 
 {#if showCreate}
-	<Modal title="New billback" onClose={() => (showCreate = false)}>
-		<CrudForm
-			fields={fields}
-			references={{ entities }}
-			defaults={defaults}
-			busy={saving}
-			onSubmit={createBillback}
-			onCancel={() => (showCreate = false)}
-		/>
+	<Modal title="New billback" wide onClose={() => (showCreate = false)}>
+		<BillbackForm busy={saving} onSubmit={createBillback} onCancel={() => (showCreate = false)} />
 	</Modal>
 {/if}
 
@@ -147,9 +144,27 @@
 
 {#if pendingDelete}
 	<ConfirmDialog
-		message={`Delete this billback (${pendingDelete.from_entity_name} → ${pendingDelete.to_entity_name}, ${formatMoney(pendingDelete.amount)})? This cannot be undone.`}
+		message={`Delete this billback (${pendingDelete.responsible_party_display ?? 'Unassigned'} owes ${pendingDelete.from_entity_name}, ${formatMoney(pendingDelete.amount)})? This cannot be undone.`}
 		onConfirm={confirmDelete}
 		onCancel={() => (pendingDelete = null)}
 	/>
 {/if}
+
+<style>
+	.filters {
+		margin-bottom: 0.75rem;
+	}
+	.check {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 13px;
+	}
+	.sub {
+		display: block;
+		font-size: 12px;
+		color: var(--text-muted);
+	}
+</style>
+
 

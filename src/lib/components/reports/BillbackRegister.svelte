@@ -4,10 +4,10 @@
 	import { api } from '$lib/api';
 
 	const columns = [
-		{ key: 'from_entity_name', label: 'From' },
-		{ key: 'to_entity_name', label: 'To' },
-		{ key: 'description', label: 'Description' },
-		{ key: 'due_date', label: 'Due', format: 'date' },
+		{ key: 'responsible_party_display', label: 'Responsible party' },
+		{ key: 'issued_date', label: 'Date', format: 'date' },
+		{ key: 'description', label: 'Memo / reason' },
+		{ key: 'from_entity_name', label: 'Paid by' },
 		{ key: 'amount', label: 'Amount', format: 'money' },
 		{ key: 'amount_paid', label: 'Paid', format: 'money' },
 		{ key: 'balance', label: 'Balance', format: 'money' },

@@ -218,6 +218,13 @@ insert into billbacks (id, organization_id, from_ownership_entity_id, to_ownersh
   ('81000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '21000000-0000-4000-8000-000000000004', '[DEMO] Shared snow removal (PLB paid for Casa Nueva)', 400.00, 'outstanding', '2026-07-25', '2026-09-01', null)
 on conflict (id) do nothing;
 
+-- [DEMO] Billback allocations — the party responsible for each demo billback
+-- (here, the owning entities the payment was made on behalf of).
+insert into billback_allocations (id, organization_id, billback_id, responsible_type, ownership_entity_id, allocation_type, percentage, amount) values
+  ('b1000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '81000000-0000-4000-8000-000000000001', 'ownership_entity', '21000000-0000-4000-8000-000000000001', 'amount', null, 1500.00),
+  ('b1000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '81000000-0000-4000-8000-000000000002', 'ownership_entity', '21000000-0000-4000-8000-000000000004', 'amount', null, 400.00)
+on conflict (id) do nothing;
+
 -- ---------------------------------------------------------------------------
 -- [DEMO] Payments — a little history so the log is not empty. Payment 3 is a
 -- cross-entity example: JenCal funded PLB's water bill.

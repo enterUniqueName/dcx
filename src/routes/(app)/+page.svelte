@@ -85,8 +85,8 @@
 					<table>
 						<thead>
 							<tr>
+								<th>Responsible</th>
 								<th>From</th>
-								<th>To</th>
 								<th>Due</th>
 								<th class="num">Balance</th>
 								<th>Status</th>
@@ -95,8 +95,8 @@
 						<tbody>
 							{#each snapshot.billbacks as b (b.id)}
 								<tr>
+									<td>{b.responsible_party_display ?? b.to_entity_name ?? '—'}</td>
 									<td>{b.from_entity_name}</td>
-									<td>{b.to_entity_name}</td>
 									<td>{formatDate(b.due_date)}</td>
 									<td class="num">{formatMoney(b.balance)}</td>
 									<td><StatusBadge status={b.status} /></td>
