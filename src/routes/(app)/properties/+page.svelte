@@ -4,10 +4,8 @@
 
 	const columns = [
 		{ key: 'name', label: 'Name' },
+		{ key: 'address1', label: 'Address' },
 		{ key: 'ownership_entity_name', label: 'Entity' },
-		{ key: 'city', label: 'City' },
-		{ key: 'state', label: 'State' },
-		{ key: 'property_type', label: 'Type' },
 		{ key: 'unit_count', label: 'Units' },
 		{ key: 'annual_tax', label: 'Annual tax', format: 'money' },
 		{ key: 'tax_next_amount', label: 'Next tax', format: 'money' },

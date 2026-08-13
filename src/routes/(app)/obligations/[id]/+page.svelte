@@ -182,7 +182,13 @@
 			<b>{formatMoney(obligation.est_amount ?? obligation.amount)}</b>
 			{#if isDerived}<span>Estimated · average of the last 3 bills</span>{/if}
 		</div>
-		<div class="fact"><span>Frequency</span><b>{obligation.frequency.replace('_', ' ')}</b></div>
+		<div class="fact">
+			<span>Frequency</span>
+			<b>
+				{obligation.frequency.replace('_', ' ')}
+				{#if obligation.interval_days} · {obligation.interval_days} days after previous bill{/if}
+			</b>
+		</div>
 		<div class="fact"><span>Billing period</span><b>{formatDate(obligation.billing_start)} → {formatDate(obligation.billing_end)}</b></div>
 		<div class="fact"><span>Portal</span><b>{#if obligation.portal_url}<a href={obligation.portal_url} target="_blank" rel="noopener">Open portal</a>{:else}—{/if}</b></div>
 		{#if obligation.notes}<div class="fact wide"><span>Notes</span><b>{obligation.notes}</b></div>{/if}

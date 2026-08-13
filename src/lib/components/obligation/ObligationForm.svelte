@@ -64,6 +64,7 @@
 		weekday_rule: '',
 		weekday: '',
 		nth_occurrence: '',
+		interval_days: '',
 		next_due_date: toISODate(new Date()),
 		billing_start: '',
 		billing_end: '',
@@ -100,6 +101,7 @@
 				weekday_rule: initial.weekday != null ? 'nth' : '',
 				weekday: initial.weekday != null ? String(initial.weekday) : '',
 				nth_occurrence: initial.nth_occurrence != null ? String(initial.nth_occurrence) : '',
+				interval_days: initial.interval_days ?? '',
 				next_due_date: initial.next_due_date ?? toISODate(new Date()),
 				billing_start: initial.billing_start ?? '',
 				billing_end: initial.billing_end ?? '',
@@ -133,6 +135,7 @@
 
 	function submit() {
 		const useWeekdayRule = form.weekday_rule === 'nth';
+		const intervalDays = num(form.interval_days);
 		const payload = {
 			name: form.name.trim(),
 			description: form.description.trim() || null,
@@ -146,9 +149,10 @@
 			amount: num(form.amount),
 			frequency: form.frequency,
 			interval_months: form.frequency === 'custom' ? num(form.interval_months) : null,
-			due_day: useWeekdayRule ? null : form.due_day === '' ? null : num(form.due_day),
+			due_day: intervalDays !== null || useWeekdayRule ? null : form.due_day === '' ? null : num(form.due_day),
 			weekday: useWeekdayRule ? num(form.weekday) : null,
 			nth_occurrence: useWeekdayRule ? num(form.nth_occurrence) : null,
+			interval_days: intervalDays,
 			next_due_date: form.next_due_date,
 			billing_start: form.billing_start || null,
 			billing_end: form.billing_end || null,
@@ -175,6 +179,10 @@
 		}
 		if (useWeekdayRule && (payload.weekday === null || payload.nth_occurrence === null)) {
 			alert('Weekday rule needs both a weekday and an occurrence.');
+			return;
+		}
+		if (payload.interval_days !== null && payload.interval_days < 1) {
+			alert('Days after previous bill must be at least 1.');
 			return;
 		}
 
@@ -221,6 +229,17 @@
 				<input id="ob-dueday" class="input" type="number" min="1" max="31" bind:value={form.due_day} placeholder="1–31" />
 			</div>
 			<div class="field">
+				<label for="ob-advance-days">Days after previous bill (optional)</label>
+				<input
+					id="ob-advance-days"
+					class="input"
+					type="number"
+					min="1"
+					bind:value={form.interval_days}
+					placeholder="e.g. 29"
+				/>
+			</div>
+			<div class="field">
 				<label for="ob-weekday-rule">Weekday rule (optional)</label>
 				<select id="ob-weekday-rule" class="select" bind:value={form.weekday_rule}>
 					<option value="">None</option>
@@ -229,6 +248,13 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if form.frequency !== 'custom' && form.interval_days !== ''}
+		<p class="hint">
+			e.g. "29" = next due date is 29 days after the previous bill (typical for electric).
+			Wins over the day-of-month and weekday rules.
+		</p>
+	{/if}
 
 	{#if form.frequency !== 'custom' && form.weekday_rule === 'nth'}
 		<div class="field-row">
