@@ -325,6 +325,8 @@
 	.detail-row > td {
 		background: #f9fafb;
 		padding: 0;
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 	.pos {
 		color: var(--ok);
