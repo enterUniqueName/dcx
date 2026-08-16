@@ -2,10 +2,10 @@
 import { supabase, unwrap } from './client.js';
 import { getOrgId } from './context.js';
 import {
-	getUpcomingObligations,
-	getOverdueObligations,
-	getReceivedObligations
-} from './obligations.js';
+	getUpcomingBills,
+	getOverdueBills,
+	getReceivedBills
+} from './bills.js';
 import { getOutstandingBillbacks } from './billbacks.js';
 import { toISODate } from '../utils/format.js';
 
@@ -40,9 +40,9 @@ export async function getCrossEntityPayments({ from, to } = {}) {
 // Everything the dashboard needs in one call.
 export async function getDashboardSnapshot() {
 	const [upcoming, overdue, received, billbacks, crossEntity, cash] = await Promise.all([
-		getUpcomingObligations(),
-		getOverdueObligations(),
-		getReceivedObligations(),
+		getUpcomingBills(),
+		getOverdueBills(),
+		getReceivedBills(),
 		getOutstandingBillbacks(),
 		getCrossEntityPayments(monthRange()),
 		getCashNeeded()

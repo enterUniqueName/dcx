@@ -3,8 +3,12 @@
 	import { base } from '$app/paths';
 	import { api } from '$lib/api';
 	import ObligationTable from '$lib/components/obligation/ObligationTable.svelte';
+	import { formatMoney, formatDate } from '$lib/utils/format.js';
+	import { sortRows, nextSort } from '$lib/utils/sort.js';
 
-	let obligations = [];
+	let tab = 'bills';
+	let bills = [];
+	let templates = [];
 	let entities = [];
 	let loading = true;
 	let error = '';
@@ -13,6 +17,10 @@
 	let status = 'all';
 	let category = '';
 	let entityId = '';
+	let groupByProperty = false;
+
+	let tplSortKey = '';
+	let tplSortDir = 'asc';
 
 	const STATUSES = [
 		{ value: 'all', label: 'All statuses' },
@@ -35,42 +43,86 @@
 
 	$: query = { search, status, category, entityId };
 
-	$: filtered = obligations.filter((o) =>
+	$: visible = (tab === 'bills' ? bills : templates).filter((o) =>
 		o.name.toLowerCase().includes(search.trim().toLowerCase())
 	);
 
-	onMount(async () => {
+	$: tplColumns = [
+		{ key: 'name', label: 'Name', format: 'text', value: (t) => t.name },
+		{ key: 'entity', label: 'Entity', format: 'text', value: (t) => t.ownership_entity_name },
+		{ key: 'property', label: 'Property', format: 'text', value: (t) => t.property_name },
+		{ key: 'category', label: 'Category', format: 'text', value: (t) => t.category },
+		{ key: 'frequency', label: 'Frequency', format: 'text', value: (t) => t.frequency },
+		{ key: 'due', label: 'Next due', format: 'date', value: (t) => t.next_due_date },
+		{ key: 'amount', label: 'Amount', format: 'money', value: (t) => t.amount },
+		{ key: 'status', label: 'Status', format: 'text', value: (t) => t.status }
+	];
+
+	$: tplSortCol = tplColumns.find((c) => c.key === tplSortKey) ?? null;
+	$: tplSorted = sortRows(visible, tplSortCol, tplSortDir, tplSortCol?.value);
+
+	$: tplDisplayRows = (() => {
+		if (!groupByProperty) return tplSorted.map((t) => ({ kind: 'row', t }));
+		const map = new Map();
+		for (const t of tplSorted) {
+			const key = t.property_name ?? '—';
+			if (!map.has(key)) map.set(key, []);
+			map.get(key).push(t);
+		}
+		const rows = [];
+		for (const [name, group] of [...map.entries()].sort((a, b) =>
+			a[0].localeCompare(b[0], undefined, { numeric: true })
+		)) {
+			rows.push({ kind: 'group', name, count: group.length });
+			for (const t of group) rows.push({ kind: 'row', t });
+		}
+		return rows;
+	})();
+
+	function toggleTpl(key) {
+		({ tplSortKey, tplSortDir } = nextSort(key, tplSortKey, tplSortDir));
+	}
+
+	onMount(load);
+
+	async function load() {
+		loading = true;
+		error = '';
 		try {
-			[obligations, entities] = await Promise.all([
-				loadObligations(),
+			const [b, t, e] = await Promise.all([
+				loadBills(),
+				api.getTemplates(),
 				api.getOwnershipEntities()
 			]);
-		} catch (e) {
-			error = e.message;
+			bills = b;
+			templates = t;
+			entities = e;
+		} catch (e2) {
+			error = e2.message;
 		} finally {
 			loading = false;
 		}
-	});
+	}
 
-	async function loadObligations() {
+	async function loadBills() {
 		const opts = {
 			category: query.category || undefined,
 			ownershipEntityId: query.entityId || undefined
 		};
 		if (query.status === 'all' || query.status === 'overdue') {
 			// fetch broad set; overdue is derived (displayed via is_overdue)
-			return api.getObligations(opts);
+			return api.getBills(opts);
 		}
-		return api.getObligations({ ...opts, status: query.status });
+		return api.getBills({ ...opts, status: query.status });
 	}
 
 	async function reload() {
 		loading = true;
 		error = '';
 		try {
-			obligations = await loadObligations();
-		} catch (e) {
-			error = e.message;
+			bills = await loadBills();
+		} catch (e2) {
+			error = e2.message;
 		} finally {
 			loading = false;
 		}
@@ -80,46 +132,144 @@
 <div class="page-header">
 	<div>
 		<h1>Obligations</h1>
-		<p class="subtitle">Bills, utilities, taxes, insurance, loan payments, and work orders.</p>
+		<p class="subtitle">
+			Templates define recurring bills; bills are the concrete due / paid invoices.
+		</p>
 	</div>
-	<a class="btn btn-primary" href={`${base}/obligations/new`}>+ New obligation</a>
+	<div class="actions">
+		<a class="btn" href={`${base}/obligations/new?kind=template`}>+ New template</a>
+		<a class="btn btn-primary" href={`${base}/obligations/new?kind=bill`}>+ New bill</a>
+	</div>
 </div>
 
-<div class="filters">
-	<input
-		class="input search"
-		placeholder="Search by name…"
-		bind:value={search}
-	/>
-	<select class="select" bind:value={status} onchange={reload}>
-		{#each STATUSES as s}<option value={s.value}>{s.label}</option>{/each}
-	</select>
-	<select class="select" bind:value={category} onchange={reload}>
-		<option value="">All categories</option>
-		{#each CATEGORIES as c}<option value={c}>{c.replace('_', ' ')}</option>{/each}
-	</select>
-	<select class="select" bind:value={entityId} onchange={reload}>
-		<option value="">All entities</option>
-		{#each entities as e}<option value={e.id}>{e.name}</option>{/each}
-	</select>
+<div class="tabs">
+	<button class:active={tab === 'bills'} onclick={() => (tab = 'bills')}>
+		Bills <span class="count">{bills.length}</span>
+	</button>
+	<button class:active={tab === 'templates'} onclick={() => (tab = 'templates')}>
+		Templates <span class="count">{templates.length}</span>
+	</button>
 </div>
+
+{#if !loading}
+	<div class="filters">
+		<input
+			class="input search"
+			placeholder="Search by name…"
+			bind:value={search}
+		/>
+		{#if tab === 'bills'}
+			<select class="select" bind:value={status} onchange={reload}>
+				{#each STATUSES as s}<option value={s.value}>{s.label}</option>{/each}
+			</select>
+			<select class="select" bind:value={category} onchange={reload}>
+				<option value="">All categories</option>
+				{#each CATEGORIES as c}<option value={c}>{c.replace('_', ' ')}</option>{/each}
+			</select>
+			<select class="select" bind:value={entityId} onchange={reload}>
+				<option value="">All entities</option>
+				{#each entities as e}<option value={e.id}>{e.name}</option>{/each}
+			</select>
+		{/if}
+		<label class="group-toggle">
+			<input type="checkbox" bind:checked={groupByProperty} />
+			Group by property
+		</label>
+	</div>
+{/if}
 
 {#if error}<p class="error-text">{error}</p>{/if}
 
 {#if loading}
 	<p class="empty">Loading…</p>
-{:else}
+{:else if tab === 'bills'}
 	{#if status === 'overdue'}
 		<ObligationTable
-			obligations={filtered.filter((o) => o.is_overdue && o.status === 'open')}
+			obligations={visible.filter((o) => o.is_overdue && o.status === 'open')}
 			showReceived={true}
+			groupByProperty={groupByProperty}
 		/>
 	{:else}
-		<ObligationTable obligations={filtered} showReceived={true} />
+		<ObligationTable
+			obligations={visible}
+			showReceived={true}
+			groupByProperty={groupByProperty}
+		/>
+	{/if}
+{:else}
+	{#if templates.length === 0}
+		<p class="empty">No templates yet. Create one to start generating bills.</p>
+	{:else}
+		<div class="table-wrap">
+			<table>
+				<thead>
+					<tr>
+						{#each tplColumns as col (col.key)}
+							<th
+								class:sortable={true}
+								class:sorted={tplSortKey === col.key}
+								onclick={() => toggleTpl(col.key)}
+							>{col.label}{#if tplSortKey === col.key}<span class="sort-ind">{tplSortDir === 'asc' ? '▲' : '▼'}</span>{/if}</th>
+						{/each}
+					</tr>
+				</thead>
+				<tbody>
+					{#each tplDisplayRows as r (r.kind === 'group' ? `g:${r.name}` : `r:${r.t.id}`)}
+						{#if r.kind === 'group'}
+							<tr class="group-row">
+								<td colspan={tplColumns.length}>
+									<span class="group-title">{r.name}</span>
+									<span class="group-count">{r.count} {r.count === 1 ? 'template' : 'templates'}</span>
+								</td>
+							</tr>
+						{:else}
+							<tr>
+								<td><a href={`${base}/obligations/${r.t.id}`}>{r.t.name}</a></td>
+								<td>{r.t.ownership_entity_name ?? '—'}</td>
+								<td>{r.t.property_name ?? '—'}</td>
+								<td>{r.t.category}</td>
+								<td>{r.t.frequency.replace('_', ' ')}</td>
+								<td>{formatDate(r.t.next_due_date)}</td>
+								<td class="num">{formatMoney(r.t.amount)}</td>
+								<td>{r.t.status}</td>
+							</tr>
+						{/if}
+					{/each}
+				</tbody>
+			</table>
+		</div>
 	{/if}
 {/if}
 
 <style>
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.tabs {
+		display: flex;
+		gap: 0.25rem;
+		margin-bottom: 1rem;
+		border-bottom: 1px solid var(--border);
+	}
+	.tabs button {
+		background: none;
+		border: none;
+		border-bottom: 2px solid transparent;
+		padding: 0.5rem 0.9rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.tabs button.active {
+		color: var(--text);
+		border-bottom-color: var(--primary);
+	}
+	.count {
+		font-size: 11px;
+		color: var(--text-muted);
+		margin-left: 0.25rem;
+	}
 	.filters {
 		display: flex;
 		flex-wrap: wrap;
@@ -129,8 +279,51 @@
 	.search {
 		flex: 1;
 		min-width: 180px;
+		max-width: 320px;
 	}
 	.filters .select {
 		width: auto;
+	}
+	.group-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 13px;
+		color: var(--text);
+		cursor: pointer;
+		user-select: none;
+		white-space: nowrap;
+		padding: 0.4rem 0.6rem;
+	}
+	th.sortable {
+		cursor: pointer;
+		user-select: none;
+		white-space: nowrap;
+	}
+	th.sortable:hover {
+		background: #eef2f6;
+	}
+	th.sorted {
+		color: var(--text);
+	}
+	.sort-ind {
+		font-size: 10px;
+		margin-left: 0.3rem;
+	}
+	.group-row > td {
+		background: #eef2f6;
+		font-size: 12px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		color: var(--text-muted);
+		padding: 0.35rem 0.75rem;
+	}
+	.group-title {
+		color: var(--text);
+	}
+	.group-count {
+		margin-left: 0.5rem;
+		font-weight: 500;
 	}
 </style>

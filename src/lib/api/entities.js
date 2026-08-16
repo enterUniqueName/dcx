@@ -63,7 +63,7 @@ export async function getEntityBillbacks(entityId) {
 	);
 }
 
-// Open obligations for a single entity (upcoming first).
+// Open bills for a single entity (upcoming first).
 export async function getEntityObligations(entityId) {
 	const orgId = getOrgId();
 	return unwrap(
@@ -74,6 +74,7 @@ export async function getEntityObligations(entityId) {
 			)
 			.eq('organization_id', orgId)
 			.eq('ownership_entity_id', entityId)
+			.eq('kind', 'bill')
 			.eq('status', 'open')
 			.order('next_due_date')
 	);

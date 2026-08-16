@@ -46,7 +46,7 @@ await db.exec(`
 `);
 
 // Apply migrations in order.
-for (const m of ['000001_init_schema.sql', '000002_rls.sql', '000003_views.sql', '000004_functions.sql', '000005_storage.sql', '000006_properties_nickname.sql', '000007_cash_needed_org_id.sql', '000008_nth_weekday.sql', '000009_variable_amount.sql', '000010_leases_rent.sql', '000011_v_properties_nickname.sql', '000012_loans_nickname.sql', '000013_org_admin.sql', '000014_entity_access.sql', '000015_tax_installments.sql', '000016_billback_redesign.sql', '000017_remove_property_nickname.sql', '000018_interval_days.sql']) {
+for (const m of ['000001_init_schema.sql', '000002_rls.sql', '000003_views.sql', '000004_functions.sql', '000005_storage.sql', '000006_properties_nickname.sql', '000007_cash_needed_org_id.sql', '000008_nth_weekday.sql', '000009_variable_amount.sql', '000010_leases_rent.sql', '000011_v_properties_nickname.sql', '000012_loans_nickname.sql', '000013_org_admin.sql', '000014_entity_access.sql', '000015_tax_installments.sql', '000016_billback_redesign.sql', '000017_remove_property_nickname.sql', '000018_interval_days.sql', '000019_bill_cycles.sql']) {
 	const sql = readFileSync(join(MIGRATIONS, m), 'utf8');
 	try {
 		await db.exec(sql);
@@ -116,8 +116,10 @@ await asUser(ownerId, async () => {
 	report('owner: 16 properties visible', Number(props[0].c) === 16, `count=${props[0].c}`);
 	const { rows: loans } = await db.query('select count(*)::int as c from loans');
 	report('owner: 13 loans visible', Number(loans[0].c) === 13, `count=${loans[0].c}`);
-	const { rows: oblig } = await db.query('select count(*)::int as c from obligations');
-	report('owner: 30 obligations visible', Number(oblig[0].c) === 30, `count=${oblig[0].c}`);
+	const { rows: oblig } = await db.query("select count(*)::int as c from obligations where kind = 'template'");
+	report('owner: 30 obligation templates visible', Number(oblig[0].c) === 30, `count=${oblig[0].c}`);
+	const { rows: bills } = await db.query("select count(*)::int as c from obligations where kind = 'bill'");
+	report('owner: bills materialized by generate_bills', Number(bills[0].c) > 0, `count=${bills[0].c}`);
 });
 
 // 3. Viewer role is read-only.
@@ -205,38 +207,46 @@ await asUser(ownerId, async () => {
 	});
 }
 
-// 6. pay_obligation: recurring advances + stays open; payment row created.
-//    Obligation 7100...0001 = loan payment for Bus. Term R/E 360 (due_day 15,
-//    next_due 2026-08-15). Funded from its own entity (PLB) so it stays
-//    non-cross-entity and doesn't affect the cross-entity counts.
+// 6. pay_bill: full payment marks a generated bill paid, payment fields merged
+//    onto the bill row (no payments-table row for bills anymore). Series
+//    7100...0001 (loan, due_day 15, next_due 2026-08-15) generated its first
+//    bill at 2026-08-15; paying it must NOT move the template's next_due.
 {
 	let adv = null;
 	await asUser(ownerId, async () => {
-		const { rows } = await db.query(`select pay_obligation(
-			'71000000-0000-4000-8000-000000000001', 459.90, '2026-08-05', '21000000-0000-4000-8000-000000000006', 'bank', 'ACH-TEST', 'check') as r`);
+		const { rows: bill } = await db.query(`select id from obligations
+			where series_id = '71000000-0000-4000-8000-000000000001' and next_due_date = '2026-08-15'`);
+		const { rows } = await db.query(`select pay_bill(
+			'${bill[0].id}', 459.90, '2026-08-05', '21000000-0000-4000-8000-000000000006', 'bank', 'ACH-TEST', 'check') as r`);
 		const r = rows[0].r;
-		const { rows: ob } = await db.query(`select status, next_due_date from obligations where id = '71000000-0000-4000-8000-000000000001'`);
-		adv = { r, ob: ob[0] };
+		const { rows: ob } = await db.query(`select status, paid_amount, paid_date, method, reference
+			from obligations where id = '${bill[0].id}'`);
+		const { rows: tpl } = await db.query(`select next_due_date from obligations
+			where id = '71000000-0000-4000-8000-000000000001'`);
+		adv = { r, ob: ob[0], tpl: tpl[0] };
 	});
+	report('pay_bill: status = paid, remaining 0', adv.r.status === 'paid' && Number(adv.r.remaining) === 0, JSON.stringify(adv.r));
+	report('pay_bill: payment fields merged onto bill row', adv.ob.status === 'paid' && Number(adv.ob.paid_amount) === 459.90 && adv.ob.method === 'bank' && adv.ob.reference === 'ACH-TEST', JSON.stringify(adv.ob));
+	const { rows: pmt } = await db.query(`select count(*)::int as c from payments
+		where obligation_id in (select id from obligations where series_id = '71000000-0000-4000-8000-000000000001')`);
+	report('pay_bill: no payments-table row for a bill', Number(pmt[0].c) === 0, `count=${pmt[0].c}`);
 	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
-	report('pay_obligation recurring: next_due advanced to Sep', iso(adv.ob.next_due_date) === '2026-09-15', JSON.stringify(adv.ob));
-	report('pay_obligation recurring: stays open', adv.ob.status === 'open', adv.ob.status);
-	const { rows: pmt } = await db.query(`select count(*)::int as c from payments where obligation_id = '71000000-0000-4000-8000-000000000001' and reference = 'ACH-TEST'`);
-	report('pay_obligation recurring: payment row inserted', Number(pmt[0].c) === 1);
+	report('pay_bill: template next_due untouched (2026-08-15)', iso(adv.tpl.next_due_date) === '2026-08-15', iso(adv.tpl.next_due_date));
 }
 
-// 7. pay_obligation one-time -> paid (create a one-time obligation first).
+// 7. pay_bill one-time -> paid (create a one-time BILL first; one-time rows are
+//    concrete bills now, not templates).
 {
 	let st = null;
 	await asUser(ownerId, async () => {
-		await db.query(`insert into obligations (id, organization_id, name, category, amount, frequency, next_due_date, status)
-			values ('bbbbbbbb-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', 'Harness one-time', 'other', 850.00, 'one_time', '2026-08-25', 'open')
+		await db.query(`insert into obligations (id, organization_id, name, category, amount, frequency, next_due_date, status, kind)
+			values ('bbbbbbbb-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', 'Harness one-time', 'other', 850.00, 'one_time', '2026-08-25', 'open', 'bill')
 			on conflict (id) do nothing`);
-		await db.query(`select pay_obligation('bbbbbbbb-0000-4000-8000-000000000001', 850.00, '2026-08-25', null)`);
-		const { rows } = await db.query(`select status from obligations where id = 'bbbbbbbb-0000-4000-8000-000000000001'`);
-		st = rows[0].status;
+		const { rows } = await db.query(`select pay_bill('bbbbbbbb-0000-4000-8000-000000000001', 850.00, '2026-08-25') as r`);
+		const { rows: ob } = await db.query(`select status from obligations where id = 'bbbbbbbb-0000-4000-8000-000000000001'`);
+		st = { r: rows[0].r, status: ob[0].status };
 	});
-	report('pay_obligation one-time: -> paid', st === 'paid', st);
+	report('pay_bill one-time: -> paid', st.status === 'paid' && st.r.status === 'paid', JSON.stringify(st));
 }
 
 // 8. Billback settlement: fully pay billback 8100...0001 -> paid.
@@ -302,58 +312,55 @@ await asUser(ownerId, async () => {
 	report('advance_due_date: due_day preserved', iso(rows[0].roll_dueday) === '2026-09-15', iso(rows[0].roll_dueday));
 }
 
-// 14. Demo water bill is configured with the weekday rule after seed.
+// 14. Demo water TEMPLATE is configured with the weekday rule after seed.
+//     (next_due_date is the schedule anchor; the concrete due date lives on
+//     the generated bill, asserted below.)
 await asUser(ownerId, async () => {
 	const { rows } = await db.query(`select weekday, nth_occurrence, next_due_date
 		from obligations where id = '71000000-0000-4000-8000-000000000028'`);
-	report('water bill: weekday rule set in seed', rows[0].weekday === 3 && rows[0].nth_occurrence === -2, JSON.stringify(rows[0]));
+	report('water template: weekday rule set in seed', rows[0].weekday === 3 && rows[0].nth_occurrence === -2, JSON.stringify(rows[0]));
 	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
-	report('water bill: next_due is 2nd-to-last Wed Aug', iso(rows[0].next_due_date) === '2026-08-19', iso(rows[0].next_due_date));
+	report('water template: anchor next_due = 2nd-to-last Wed Aug', iso(rows[0].next_due_date) === '2026-08-19', iso(rows[0].next_due_date));
 });
 
-// 15. pay_obligation carries the rule through to the next occurrence.
+// 15. Bill generation carries the weekday rule through, and pay_bill records
+//     the payment against the concrete BILL (not the template). The first
+//     generated water bill is due 2026-08-19; the next is 2026-09-23.
 {
 	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
 	let nd = null;
 	await asUser(ownerId, async () => {
-		await db.query(`select pay_obligation(
-			'71000000-0000-4000-8000-000000000028', 95.00, '2026-08-19',
-			'21000000-0000-4000-8000-000000000006', 'bank', 'W-PAY', 'check') as r`);
+		const { rows: b } = await db.query(`select id from obligations
+			where series_id = '71000000-0000-4000-8000-000000000028' and status = 'open'
+			order by next_due_date limit 1`);
+		const { rows: pay } = await db.query(`select pay_bill(
+			'${b[0].id}', 95.00, '2026-08-19', '21000000-0000-4000-8000-000000000006', 'bank', 'W-PAY', 'check') as r`);
 		const { rows } = await db.query(`select next_due_date from obligations
-			where id = '71000000-0000-4000-8000-000000000028'`);
-		nd = rows[0].next_due_date;
+			where series_id = '71000000-0000-4000-8000-000000000028' and status = 'open'
+			order by next_due_date limit 1`);
+		nd = { pay: pay[0].r, next: rows[0].next_due_date };
 	});
-	report('pay_obligation: water bill next due = Sep 23', iso(nd) === '2026-09-23', iso(nd));
+	report('pay_bill: water bill marked paid', nd.pay.status === 'paid', JSON.stringify(nd.pay));
+	report('pay_bill: next generated water bill due = Sep 23', iso(nd.next) === '2026-09-23', iso(nd.next));
 }
 
-// 16. est_amount: variable bills use the average of the last 3 payments once
-//     3 exist; otherwise and for fixed bills they fall back to amount.
+// 16. series_est_amount (000019): rolling estimate for a variable series from
+//     the average of the last 3 PAID bills. Electric has one paid demo bill
+//     ($180) -> est = 180. Water likewise ($95). A series with no paid bills
+//     returns null (callers coalesce to the template amount). v_obligations
+//     est_amount for a bill with no history falls back to amount.
 {
+	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
+	const { rows: el } = await db.query(`select series_est_amount('71000000-0000-4000-8000-000000000027') as e`);
+	report('series_est_amount: electric = 180 (paid demo bill)', Number(el[0].e) === 180, `est=${el[0].e}`);
+	const { rows: wa } = await db.query(`select series_est_amount('71000000-0000-4000-8000-000000000028') as e`);
+	report('series_est_amount: water = 95 (paid demo bill)', Number(wa[0].e) === 95, `est=${wa[0].e}`);
+	const { rows: loan } = await db.query(`select series_est_amount('71000000-0000-4000-8000-000000000002') as e`);
+	report('series_est_amount: no paid bills -> null', loan[0].e === null, `est=${loan[0].e}`);
 	await asUser(ownerId, async () => {
-		const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
-
-		// Water bill 7100...0028 already has 2 payments (seed DEMO-003 + W-PAY).
-		// Add a third and a fourth so the last-3 average diverges from amount.
-		await db.query(`insert into payments (organization_id, obligation_id, amount, paid_date)
-			values
-			('11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000028', 140.00, '2026-07-15'),
-			('11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000028', 120.00, '2026-07-22')`);
-
 		const { rows: water } = await db.query(`select amount, variable_amount, est_amount
-			from v_obligations where id = '71000000-0000-4000-8000-000000000028'`);
-		report('est_amount: water bill variable_amount true', water[0].variable_amount === true);
-		// last 3 by paid_date desc: 95 (08-19), 120 (07-22), 140 (07-15) -> avg = 118.33
-		report('est_amount: water avg of last 3 = 118.33', Number(water[0].est_amount) === 118.33, `est=${water[0].est_amount}`);
-
-		// Electric bill (seed) is variable too, but 0 payments -> falls back to amount.
-		const { rows: electric } = await db.query(`select amount, est_amount
-			from v_obligations where id = '71000000-0000-4000-8000-000000000027'`);
-		report('est_amount: electric falls back to amount (no history)', Number(electric[0].est_amount) === 180.0, `est=${electric[0].est_amount}`);
-
-		// Fixed loan-payment bill: est_amount === amount even with payments.
-		const { rows: loan } = await db.query(`select amount, est_amount
-			from v_obligations where id = '71000000-0000-4000-8000-000000000001'`);
-		report('est_amount: fixed bill uses configured amount', Number(loan[0].est_amount) === Number(loan[0].amount), `amount=${loan[0].amount} est=${loan[0].est_amount}`);
+			from v_obligations where series_id = '71000000-0000-4000-8000-000000000028' and status = 'open' limit 1`);
+		report('est_amount: open bill w/o history falls back to amount', water[0].variable_amount === true && Number(water[0].est_amount) === Number(water[0].amount), JSON.stringify(water[0]));
 	});
 }
 
@@ -461,8 +468,11 @@ await asUser(partnerId, async () => {
 	const { rows: props } = await db.query(`select id, name from properties`);
 	report('partner: only Palmera House property visible', props.length === 1 && props[0].id === '31000000-0000-4000-8000-000000000001', JSON.stringify(props));
 
-	const { rows: ob } = await db.query(`select id, name from obligations`);
-	report('partner: only Palmera House tax obligation visible', ob.length === 1 && ob[0].id === '71000000-0000-4000-8000-000000000014', JSON.stringify(ob));
+	const { rows: ob } = await db.query(`select id, series_id from obligations`);
+	report('partner: only Palmera tax template + its bills visible', ob.length >= 1 && ob.every((r) => r.id === '71000000-0000-4000-8000-000000000014' || r.series_id === '71000000-0000-4000-8000-000000000014'), JSON.stringify(ob));
+	const { rows: obIds } = await db.query(`select count(*)::int as c from obligations
+		where series_id = '71000000-0000-4000-8000-000000000014'`);
+	report('partner: generated tax bills visible alongside template', Number(obIds[0].c) > 0, `count=${obIds[0].c}`);
 
 	const { rows: loans } = await db.query(`select count(*)::int as c from loans`);
 	report('partner: no loans visible', Number(loans[0].c) === 0, `count=${loans[0].c}`);
@@ -477,8 +487,8 @@ await asUser(partnerId, async () => {
 		from v_entity_summary where id = '21000000-0000-4000-8000-000000000002'`);
 	report('partner: entity summary snapshot = Palmera House', Number(vs[0].property_count) === 1 && Number(vs[0].loans_monthly) === 0, JSON.stringify(vs));
 
-	const { rows: cn } = await db.query(`select count(*)::int as c from v_cash_needed`);
-	report('partner: cash needed shows only scoped obligations', Number(cn[0].c) === 1, `count=${cn[0].c}`);
+	const { rows: cn } = await db.query(`select count(*)::int as c, count(distinct ownership_entity_id)::int as e from v_cash_needed`);
+	report('partner: cash needed scoped to their single entity', Number(cn[0].c) >= 1 && Number(cn[0].e) === 1, `count=${cn[0].c} entities=${cn[0].e}`);
 
 	let denied = false;
 	try {
@@ -545,13 +555,15 @@ await asUser(ownerId, async () => {
 		from v_properties where id = '31000000-0000-4000-8000-000000000003'`);
 	report('v_properties: no-tax property shows nulls', vp2[0].annual_tax === null && vp2[0].tax_next_due_date === null, JSON.stringify(vp2[0]));
 
-	const { rows: pay } = await db.query(`select pay_obligation(
-		'71000000-0000-4000-8000-000000000014', 1050.00, '2026-11-15',
+	const { rows: pay } = await db.query(`select pay_bill(
+		(select id from obligations where series_id = '71000000-0000-4000-8000-000000000014' and next_due_date = '2026-11-15'),
+		1050.00, '2026-11-15',
 		'21000000-0000-4000-8000-000000000002', 'bank', 'TAX-Q1') as r`);
-	report('pay_obligation: tax installment returns next = Jan 15', iso(pay[0].r.next_due_date) === '2027-01-15', iso(pay[0].r.next_due_date));
-	const { rows: ob } = await db.query(`select status, next_due_date from obligations where id = '71000000-0000-4000-8000-000000000014'`);
-	report('pay_obligation: tax stays open after installment', ob[0].status === 'open', ob[0].status);
-	report('pay_obligation: next due advanced to Jan 15', iso(ob[0].next_due_date) === '2027-01-15', iso(ob[0].next_due_date));
+	report('pay_bill: tax bill paid', pay[0].r.status === 'paid', JSON.stringify(pay[0].r));
+	const { rows: vp3 } = await db.query(`select tax_next_due_date from v_properties where id = '31000000-0000-4000-8000-000000000001'`);
+	report('pay_bill: v_properties now points at next tax BILL = Jan 15', iso(vp3[0].tax_next_due_date) === '2027-01-15', iso(vp3[0].tax_next_due_date));
+	const { rows: ob } = await db.query(`select status from obligations where series_id = '71000000-0000-4000-8000-000000000014' and next_due_date = '2027-01-15'`);
+	report('pay_bill: next tax bill exists and stays open', ob[0].status === 'open', JSON.stringify(ob[0]));
 });
 
 // 20. Billback redesign (000016).
@@ -640,15 +652,70 @@ await asUser(ownerId, async () => {
 	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
 	const { rows: seedEl } = await db.query(`select interval_days, due_day from obligations
 		where id = '71000000-0000-4000-8000-000000000027'`);
-	report('electric obligation: seed sets interval_days = 29, no due_day', Number(seedEl[0].interval_days) === 29 && seedEl[0].due_day === null, JSON.stringify(seedEl[0]));
+	report('electric template: seed sets interval_days = 29, no due_day', Number(seedEl[0].interval_days) === 29 && seedEl[0].due_day === null, JSON.stringify(seedEl[0]));
 
-	const { rows: pay } = await db.query(`select pay_obligation(
-		'71000000-0000-4000-8000-000000000027', 180.00, '2026-08-20',
-		'21000000-0000-4000-8000-000000000006', 'bank', 'ELEC-01') as r`);
-	report('pay_obligation: electric advances +29 days (next = 2026-09-18)', iso(pay[0].r.next_due_date) === '2026-09-18', iso(pay[0].r.next_due_date));
-	const { rows: ob } = await db.query(`select status, next_due_date from obligations where id = '71000000-0000-4000-8000-000000000027'`);
-	report('pay_obligation: electric stays open after pay', ob[0].status === 'open', ob[0].status);
+	// First open electric bill is generated at 2026-08-18 (paid demo bill at
+	// 07-20 + 29 days). Paying it leaves the next bill (2026-09-16) open.
+	const { rows: bills } = await db.query(`select next_due_date from obligations
+		where series_id = '71000000-0000-4000-8000-000000000027' and status = 'open'
+		order by next_due_date limit 2`);
+	report('electric: generated bills step +29 days (Aug 18, Sep 16)', iso(bills[0].next_due_date) === '2026-08-18' && iso(bills[1].next_due_date) === '2026-09-16', JSON.stringify(bills.map((b) => iso(b.next_due_date))));
+
+	const { rows: pay } = await db.query(`select pay_bill(
+		(select id from obligations where series_id = '71000000-0000-4000-8000-000000000027' and next_due_date = '2026-08-18'),
+		180.00, '2026-08-20', '21000000-0000-4000-8000-000000000006', 'bank', 'ELEC-01') as r`);
+	report('pay_bill: electric bill paid', pay[0].r.status === 'paid', JSON.stringify(pay[0].r));
+	const { rows: ob } = await db.query(`select next_due_date from obligations
+		where series_id = '71000000-0000-4000-8000-000000000027' and status = 'open'
+		order by next_due_date limit 1`);
+	report('pay_bill: next open electric bill = Sep 16', iso(ob[0].next_due_date) === '2026-09-16', iso(ob[0].next_due_date));
 });
+
+// 22. Bill cycles (000019): kind split, bills-only overdue / cash-needed,
+//     partial payments keep the bill open until fully paid.
+{
+	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
+	const { rows: kinds } = await db.query(`select
+		count(*) filter (where kind = 'template')::int as tpl,
+		count(*) filter (where kind = 'bill')::int as bills
+		from obligations`);
+	report('000019: obligations split into templates + bills', Number(kinds[0].tpl) === 30 && Number(kinds[0].bills) > 0, JSON.stringify(kinds[0]));
+
+	const { rows: series } = await db.query(`select count(*)::int as c from obligations
+		where kind = 'bill' and series_id is null and frequency <> 'one_time'`);
+	report('000019: every generated (recurring) bill links to a template', Number(series[0].c) === 0, `count=${series[0].c}`);
+
+	// Templates are never overdue / never counted toward cash needed (the
+	// v_cash_needed view filters kind='bill', so a template's amount cannot
+	// inflate a month's total).
+	const { rows: tplOver } = await db.query(`select count(*)::int as c from v_obligations
+		where kind = 'template' and is_overdue`);
+	report('000019: templates never flagged overdue', Number(tplOver[0].c) === 0, `count=${tplOver[0].c}`);
+	const { rows: cnMatch } = await db.query(`select
+		(select count(*)::int from v_cash_needed where obligations_amount > 0) as cn_rows,
+		(select count(*)::int from v_obligations where kind = 'bill' and status = 'open'
+		   and next_due_date >= date_trunc('month', current_date)::date
+		   and next_due_date < date_trunc('month', current_date)::date + interval '6 months') as window_bills`);
+	report('000019: v_cash_needed rows match open bill window', Number(cnMatch[0].cn_rows) >= 1 && Number(cnMatch[0].cn_rows) <= Number(cnMatch[0].window_bills), JSON.stringify(cnMatch[0]));
+
+	// Overdue = open bills past due (the [DEMO] HVAC June bill was paid; the
+	// July 25 bill generated from that history is now overdue).
+	await asUser(ownerId, async () => {
+		const { rows: overdue } = await db.query(`select count(*)::int as c from v_obligations where is_overdue`);
+		report('000019: overdue bills exist (unpaid stack)', Number(overdue[0].c) >= 1, `count=${overdue[0].c}`);
+
+		// Partial payment: HVAC July bill (120.00) paid 50.00 -> stays open.
+		const { rows: hvac } = await db.query(`select id from v_obligations where is_overdue order by next_due_date limit 1`);
+		const { rows: part } = await db.query(`select pay_bill('${hvac[0].id}', 50.00, '2026-07-30', null, 'bank', 'PART-01') as r`);
+		report('pay_bill partial: bill stays open with remaining', part[0].r.status === 'open' && Number(part[0].r.remaining) === 70 && Number(part[0].r.paid_amount) === 50, JSON.stringify(part[0].r));
+		const { rows: ob2 } = await db.query(`select status, paid_amount from obligations where id = '${hvac[0].id}'`);
+		report('pay_bill partial: row carries accumulated paid_amount', ob2[0].status === 'open' && Number(ob2[0].paid_amount) === 50, JSON.stringify(ob2[0]));
+
+		// Complete it -> paid.
+		const { rows: full } = await db.query(`select pay_bill('${hvac[0].id}', 70.00, '2026-07-31') as r`);
+		report('pay_bill partial: remainder flips bill to paid', full[0].r.status === 'paid' && Number(full[0].r.remaining) === 0, JSON.stringify(full[0].r));
+	});
+}
 
 const failed = results.filter((r) => !r.pass);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

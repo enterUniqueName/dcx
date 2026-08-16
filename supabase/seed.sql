@@ -101,7 +101,9 @@ insert into loans (id, organization_id, ownership_entity_id, property_id, lender
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- Recurring loan-payment obligations (derived from the real loan records)
+-- Recurring loan-payment templates (derived from the real loan records). Each
+-- row is a recurring series (kind defaults to 'template'); generate_bills()
+-- below turns each into concrete bill rows.
 -- ---------------------------------------------------------------------------
 insert into obligations (id, organization_id, ownership_entity_id, property_id, loan_id, name, description, category, amount, frequency, interval_months, due_day, next_due_date, status, notes) values
   ('71000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000004', '41000000-0000-4000-8000-000000000001', 'Bus. Term R/E 360 | Thomson #2', 'Monthly loan payment (derived from loan records)', 'loan_payment', 459.9, 'monthly', 1, 15, '2026-08-15', 'open', null),
@@ -228,19 +230,28 @@ insert into billback_allocations (id, organization_id, billback_id, responsible_
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- [DEMO] Payments — a little history so the log is not empty. Payment 3 is a
--- cross-entity example: JenCal funded PLB's water bill.
+-- [DEMO] Paid bills — a little history so the log is not empty. In the new
+-- model each bill IS its own payment record (status 'paid' + paid fields).
+-- The water row is a cross-entity example: JenCal funded PLB's water bill
+-- (funding_entity_id differs from the bill's ownership entity).
 -- ---------------------------------------------------------------------------
-insert into payments (id, organization_id, obligation_id, ownership_entity_id, billback_id, amount, paid_date, method, reference, notes) values
-  ('91000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000027', '21000000-0000-4000-8000-000000000006', null, 180.00, '2026-07-20', 'Check', 'DEMO-001', null),
-  ('91000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000029', '21000000-0000-4000-8000-000000000006', null, 120.00, '2026-06-25', 'Check', 'DEMO-002', null),
-  ('91000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000028', '21000000-0000-4000-8000-000000000001', null, 95.00, '2026-07-12', 'ACH', 'DEMO-003', 'Cross-entity example: JenCal funded PLB water bill')
+insert into obligations (id, organization_id, series_id, kind, ownership_entity_id, property_id, vendor_id, tenant_id, name, description, category, amount, variable_amount, frequency, interval_months, due_day, weekday, nth_occurrence, interval_days, next_due_date, status, received, paid_amount, paid_date, method, reference, funding_entity_id, notes) values
+  ('91000000-0000-4000-8000-000000000001', '11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000027', 'bill', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000002', '51000000-0000-4000-8000-000000000001', '[DEMO] Electric — 309 Hancock', 'July statement', 'electric', 180.00, true, 'monthly', 1, null, null, null, 29, '2026-07-20', 'paid', true, 180.00, '2026-07-20', 'Check', 'DEMO-001', '21000000-0000-4000-8000-000000000006', null),
+  ('91000000-0000-4000-8000-000000000002', '11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000029', 'bill', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000004', null, '[DEMO] HVAC Maintenance — Tacos2', 'June service visit', 'maintenance', 120.00, false, 'monthly', 1, 25, null, null, null, '2026-06-25', 'paid', true, 120.00, '2026-06-25', 'Check', 'DEMO-002', '21000000-0000-4000-8000-000000000006', null),
+  ('91000000-0000-4000-8000-000000000003', '11000000-0000-4000-8000-000000000001', '71000000-0000-4000-8000-000000000028', 'bill', '21000000-0000-4000-8000-000000000006', '31000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000004', null, '[DEMO] Water & Sewer — Motor Co', 'July water/sewer statement', 'water', 95.00, true, 'monthly', 1, null, 3, -2, null, '2026-07-12', 'paid', true, 95.00, '2026-07-12', 'ACH', 'DEMO-003', '21000000-0000-4000-8000-000000000001', 'Cross-entity example: JenCal funded PLB water bill')
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
+-- [DEMO] Generate bills — materialize concrete bill rows from every active
+-- template (idempotent; the app also runs this on load). This is what makes
+-- overdue bills stack while new bills keep being created.
+-- ---------------------------------------------------------------------------
+select generate_bills('11000000-0000-4000-8000-000000000001', (current_date + interval '180 days')::date);
+
+-- ---------------------------------------------------------------------------
 -- Replace the [DEMO] rows with real data, then remove the demo rows:
+-- (deleting a [DEMO] template cascades its generated bills)
 --
---   delete from payments  where reference like 'DEMO-%';
 --   delete from billbacks where description like '[DEMO]%';
 --   delete from obligations where name like '[DEMO]%';
 --   delete from rent_schedule where tenant_id in (select id from tenants where name like '[DEMO]%');

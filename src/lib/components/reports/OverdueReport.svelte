@@ -19,7 +19,7 @@
 
 	onMount(async () => {
 		try {
-			rows = await api.getOverdueObligations();
+			rows = await api.getOverdueBills();
 		} catch (e) {
 			error = e.message;
 		} finally {

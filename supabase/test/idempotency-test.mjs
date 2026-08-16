@@ -71,6 +71,10 @@ const mig18 = readFileSync(join(REPO, 'supabase/migrations', '000018_interval_da
 await db.exec(mig18);
 await db.exec(mig18);
 
+const mig19 = readFileSync(join(REPO, 'supabase/migrations', '000019_bill_cycles.sql'), 'utf8');
+await db.exec(mig19);
+await db.exec(mig19);
+
 const { rows } = await db.query(
 	`select
 	  (select count(*)::int from v_obligations where est_amount is null) as null_est,
@@ -93,8 +97,11 @@ const { rows } = await db.query(
 	  (select count(*)::int from information_schema.columns where table_name = 'billbacks' and column_name in ('check_number', 'vendor_id', 'property_id', 'paid_amount', 'markup_percent', 'responsibility_type')) as bb_new_cols,
 	  (select count(*)::int from information_schema.columns where table_name = 'obligations' and column_name = 'interval_days') as idays_col,
 	  (select interval_days::int from obligations where id = '71000000-0000-4000-8000-000000000027') as idays_electric,
-	  (select count(*)::int from obligations where category = 'electric' and due_day is not null) as electric_due_day`
+	  (select count(*)::int from obligations where category = 'electric' and due_day is not null) as electric_due_day,
+	  (select count(*)::int from information_schema.columns where table_name = 'obligations' and column_name in ('kind', 'series_id', 'paid_amount', 'paid_date', 'funding_entity_id')) as billcycle_cols,
+	  (select count(*)::int from obligations where kind = 'bill' and series_id is null) as bill_no_series,
+	  (select count(*)::int from obligations where kind = 'template' and status = 'paid') as tpl_paid`
 );
-const ok = rows[0].null_est === 0 && rows[0].lease_tables === 2 && rows[0].entity_summary_rows === 7 && rows[0].move_in_left === 0 && rows[0].vprop_nickname === 0 && rows[0].prop_nickname === 0 && rows[0].vloan_nickname === 1 && rows[0].loan_nickname_null === 0 && rows[0].admin_fns === 2 && rows[0].entity_access_table === 1 && rows[0].scope_fns === 5 && rows[0].annual_tax_filled === 13 && rows[0].quarterly_tax === 13 && rows[0].non_installment_tax === 0 && Number(rows[0].palmera_tax) === 1050 && rows[0].vprop_tax_col === 1 && rows[0].alloc_table === 1 && rows[0].bb_new_cols === 6 && rows[0].idays_col === 1 && Number(rows[0].idays_electric) === 29 && rows[0].electric_due_day === 0;
+const ok = rows[0].null_est === 0 && rows[0].lease_tables === 2 && rows[0].entity_summary_rows === 7 && rows[0].move_in_left === 0 && rows[0].vprop_nickname === 0 && rows[0].prop_nickname === 0 && rows[0].vloan_nickname === 1 && rows[0].loan_nickname_null === 0 && rows[0].admin_fns === 2 && rows[0].entity_access_table === 1 && rows[0].scope_fns === 5 && rows[0].annual_tax_filled === 13 && rows[0].quarterly_tax === 13 && rows[0].non_installment_tax === 0 && Number(rows[0].palmera_tax) === 1050 && rows[0].vprop_tax_col === 1 && rows[0].alloc_table === 1 && rows[0].bb_new_cols === 6 && rows[0].idays_col === 1 && Number(rows[0].idays_electric) === 29 && rows[0].electric_due_day === 0 && rows[0].billcycle_cols === 5 && rows[0].bill_no_series === 0 && rows[0].tpl_paid === 0;
 console.log(ok ? 'PASS  idempotent re-run clean' : 'FAIL  ' + JSON.stringify(rows[0]));
 process.exit(ok ? 0 : 1);

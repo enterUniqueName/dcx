@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const MIGRATIONS = join(REPO, 'supabase/migrations');
 const db = new PGlite();
+const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
 
 const results = [];
 function report(name, pass, extra = '') {
@@ -261,14 +262,41 @@ try {
 	report('000018 upgrade: advance_due_date honors interval_days', iso(ad[0].d) === '2026-09-18', iso(ad[0].d));
 }
 
+// Apply 000019 (bill cycles) on the live state. The 000009-era seed carried
+// plain one_time obligations as obligations rows; the migration must split
+// templates from bills (kind/series_id) and backfill one_time rows to bills.
+try {
+	await db.exec(readFileSync(join(MIGRATIONS, '000019_bill_cycles.sql'), 'utf8'));
+	report('migration 000019_bill_cycles.sql', true);
+} catch (e) {
+	report('migration 000019_bill_cycles.sql', false, e.message);
+	console.error(e);
+	process.exit(1);
+}
+{
+	const iso = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d));
+	const { rows: cols } = await db.query(`select count(*)::int as c from information_schema.columns
+		where table_name = 'obligations' and column_name in ('kind', 'series_id', 'paid_amount', 'paid_date', 'funding_entity_id')`);
+	report('000019 upgrade: kind/series_id/payment columns added', Number(cols[0].c) === 5, `count=${cols[0].c}`);
+	const { rows: one_time } = await db.query(`select count(*)::int as c from obligations
+		where kind = 'bill' and frequency = 'one_time'`);
+	report('000019 upgrade: one_time rows all backfilled to bills (0 one_time in live seed)', Number(one_time[0].c) === 0, `count=${one_time[0].c}`);
+	const { rows: tpl } = await db.query(`select count(*)::int as c from obligations where kind = 'template'`);
+	report('000019 upgrade: recurring rows are templates', Number(tpl[0].c) > 0, `count=${tpl[0].c}`);
+}
+
 // Re-run the CURRENT seed (working copy) over the fully migrated live data —
 // the same thing the user does after pasting the migrations. Runs last
 // because the loans insert now carries the nickname column (000012).
+// Clear any leftover auth.test_uid from the 000013/000014 blocks so the seed's
+// generate_bills call runs in the admin context.
+await db.query(`select set_config('auth.test_uid', '', false)`);
 try {
 	await db.exec(readFileSync(join(REPO, 'supabase/seed.sql'), 'utf8'));
 	report('current seed re-applied over migrations', true);
 } catch (e) {
 	report('current seed re-applied over migrations', false, e.message);
+	console.error(e);
 	process.exit(1);
 }
 {
@@ -285,6 +313,12 @@ try {
 	const { rows: el } = await db.query(`select interval_days, due_day from obligations
 		where id = '71000000-0000-4000-8000-000000000027'`);
 	report('current seed re-run: electric still interval_days = 29 (on conflict do nothing)', Number(el[0].interval_days) === 29 && el[0].due_day === null, JSON.stringify(el[0]));
+	const { rows: bills } = await db.query(`select count(*)::int as c from obligations
+		where kind = 'bill' and frequency <> 'one_time' and series_id is not null`);
+	report('current seed re-run: generate_bills materialized bills per series', Number(bills[0].c) > 0, `count=${bills[0].c}`);
+	const { rows: vp } = await db.query(`select tax_next_due_date from v_properties
+		where id = '31000000-0000-4000-8000-000000000001'`);
+	report('current seed re-run: v_properties tax reads the generated bill', iso(vp[0].tax_next_due_date) === '2026-11-15', iso(vp[0].tax_next_due_date));
 }
 
 const failed = results.filter((r) => !r.pass);

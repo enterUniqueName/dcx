@@ -4,6 +4,7 @@
 	import ConfirmDialog from '../ui/ConfirmDialog.svelte';
 	import CrudForm from './CrudForm.svelte';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
+	import { sortRows, nextSort } from '$lib/utils/sort.js';
 
 	// Config-driven CRUD list page.
 	//   title, description      page chrome
@@ -41,29 +42,7 @@
 	let sortDir = 'asc';
 
 	function sort(col) {
-		if (sortKey === col.key) {
-			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-		} else {
-			sortKey = col.key;
-			sortDir = 'asc';
-		}
-	}
-
-	function sortValue(v, col) {
-		if (v === null || v === undefined || v === '') return null;
-		if (col.format === 'money' || col.format === 'percent' || col.format === 'yesno') return Number(v);
-		if (col.format === 'date') return new Date(v).getTime();
-		return String(v).toLowerCase();
-	}
-
-	function compareRows(a, b, col) {
-		const av = sortValue(a[col.key], col);
-		const bv = sortValue(b[col.key], col);
-		if (av === null && bv === null) return 0;
-		if (av === null) return 1;
-		if (bv === null) return -1;
-		if (typeof av === 'number' && typeof bv === 'number') return av - bv;
-		return av.localeCompare(bv, undefined, { numeric: true });
+		({ sortKey, sortDir } = nextSort(col.key, sortKey, sortDir));
 	}
 
 	function toggleExpanded(id) {
@@ -131,10 +110,7 @@
 			: [...rows];
 		if (sortKey) {
 			const col = columns.find((c) => c.key === sortKey);
-			if (col) {
-				const dir = sortDir === 'asc' ? 1 : -1;
-				list.sort((a, b) => compareRows(a, b, col) * dir);
-			}
+			if (col) return sortRows(list, col, sortDir);
 		}
 		return list;
 	})();

@@ -6,7 +6,7 @@
 	import { formatDate, formatSize } from '$lib/utils/format.js';
 
 	const ENTITY_TYPES = [
-		{ value: 'obligation', label: 'Obligation', load: () => api.getObligations() },
+		{ value: 'obligation', label: 'Obligation', load: () => api.getBills() },
 		{ value: 'property', label: 'Property', load: () => api.getProperties() },
 		{ value: 'ownership_entity', label: 'Ownership entity', load: () => api.getOwnershipEntities() },
 		{ value: 'loan', label: 'Loan', load: () => api.getLoans() },

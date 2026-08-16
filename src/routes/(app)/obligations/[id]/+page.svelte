@@ -9,6 +9,7 @@
 	import DueChip from '$lib/components/ui/DueChip.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ObligationForm from '$lib/components/obligation/ObligationForm.svelte';
+	import BillForm from '$lib/components/obligation/BillForm.svelte';
 	import PayObligationModal from '$lib/components/obligation/PayObligationModal.svelte';
 	import DocumentsPanel from '$lib/components/obligation/DocumentsPanel.svelte';
 	import PaymentTable from '$lib/components/payments/PaymentTable.svelte';
@@ -22,10 +23,11 @@
 
 	let editing = false;
 	let showPay = false;
+	let showGenerate = false;
 	let saving = false;
 	let pendingDelete = null;
-	let pendingPaymentDelete = null;
 
+	$: isBill = obligation?.kind === 'bill';
 	$: isDerived =
 		obligation &&
 		obligation.est_amount != null &&
@@ -38,8 +40,9 @@
 		error = '';
 		try {
 			const id = $page.params.id;
+			// The id may be a template or a bill; fetch both, keep the match.
 			const [ob, pays, ents] = await Promise.all([
-				api.getObligation(id),
+				fetchObligation(id),
 				api.getPayments({ obligationId: id }),
 				api.getOwnershipEntities()
 			]);
@@ -53,11 +56,18 @@
 		}
 	}
 
+	async function fetchObligation(id) {
+		const settled = await Promise.allSettled([api.getBill(id), api.getTemplate(id)]);
+		const hit = settled.find((s) => s.status === 'fulfilled');
+		if (!hit) throw new Error('Obligation not found');
+		return hit.value;
+	}
+
 	async function toggleReceived() {
 		try {
 			await (obligation.received
-				? api.markObligationUnreceived(obligation.id)
-				: api.markObligationReceived(obligation.id));
+				? api.markBillUnreceived(obligation.id)
+				: api.markBillReceived(obligation.id));
 			await load();
 		} catch (e) {
 			error = e.message;
@@ -68,9 +78,23 @@
 		saving = true;
 		error = '';
 		try {
-			await api.markObligationPaid(obligation.id, payload);
+			await api.payBill(obligation.id, payload);
 			showPay = false;
 			await load();
+		} catch (e) {
+			error = e.message;
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function confirmGenerate() {
+		saving = true;
+		error = '';
+		try {
+			const created = await api.generateBills();
+			showGenerate = false;
+			if (created > 0) await load();
 		} catch (e) {
 			error = e.message;
 		} finally {
@@ -82,7 +106,9 @@
 		saving = true;
 		error = '';
 		try {
-			await api.updateObligation(obligation.id, payload);
+			await (isBill
+				? api.updateBill(obligation.id, payload)
+				: api.updateTemplate(obligation.id, payload));
 			editing = false;
 			await load();
 		} catch (e) {
@@ -94,7 +120,9 @@
 
 	async function confirmCancel() {
 		try {
-			await api.cancelObligation(obligation.id);
+			await (isBill
+				? api.cancelBill(obligation.id)
+				: api.cancelTemplate(obligation.id));
 			pendingDelete = null;
 			await load();
 		} catch (e) {
@@ -104,18 +132,10 @@
 
 	async function confirmDelete() {
 		try {
-			await api.deleteObligation(obligation.id);
+			await (isBill
+				? api.deleteBill(obligation.id)
+				: api.deleteTemplate(obligation.id));
 			goto(`${base}/obligations`);
-		} catch (e) {
-			error = e.message;
-		}
-	}
-
-	async function confirmPaymentDelete() {
-		try {
-			await api.deletePayment(pendingPaymentDelete.id);
-			pendingPaymentDelete = null;
-			await load();
 		} catch (e) {
 			error = e.message;
 		}
@@ -139,35 +159,61 @@
 			<div class="title-row">
 				<h1>{obligation.name}</h1>
 				<StatusBadge status={obligation.is_overdue ? 'overdue' : obligation.status} />
+				<span class="kind-chip">{isBill ? 'Bill' : 'Template'}</span>
 			</div>
 			<p class="subtitle">
-				{obligation.category.replace('_', ' ')} · due <DueChip dueDate={obligation.next_due_date} />
+				{obligation.category.replace('_', ' ')}
+				{#if isBill}
+					· due <DueChip dueDate={obligation.next_due_date} />
+				{:else}
+					· next due {formatDate(obligation.next_due_date)}
+				{/if}
 				{#if obligation.received} · received {formatDate(obligation.received_date)}{/if}
 			</p>
 		</div>
 		<div class="actions">
-			{#if obligation.status === 'open'}
-				<button class="btn" onclick={toggleReceived}>
-					{obligation.received ? 'Mark not received' : 'Mark received'}
-				</button>
-				<button class="btn btn-primary" onclick={() => (showPay = true)}>Mark paid</button>
+			{#if isBill}
+				{#if obligation.status === 'open'}
+					<button class="btn" onclick={toggleReceived}>
+						{obligation.received ? 'Mark not received' : 'Mark received'}
+					</button>
+					<button class="btn btn-primary" onclick={() => (showPay = true)}>Mark paid</button>
+				{/if}
 				<button class="btn" onclick={() => (editing = !editing)}>{editing ? 'Close edit' : 'Edit'}</button>
-				<button class="btn btn-danger" onclick={() => (pendingDelete = 'cancel')}>Cancel obligation</button>
+				{#if obligation.status === 'open'}
+					<button class="btn btn-danger" onclick={() => (pendingDelete = 'cancel')}>Cancel bill</button>
+				{:else}
+					<button class="btn btn-danger" onclick={() => (pendingDelete = 'delete')}>Delete</button>
+				{/if}
 			{:else}
+				<button class="btn" onclick={() => (showGenerate = true)}>Generate bills</button>
 				<button class="btn" onclick={() => (editing = !editing)}>{editing ? 'Close edit' : 'Edit'}</button>
-				<button class="btn btn-danger" onclick={() => (pendingDelete = 'delete')}>Delete</button>
+				{#if obligation.status === 'open'}
+					<button class="btn btn-danger" onclick={() => (pendingDelete = 'cancel')}>Cancel template</button>
+				{:else}
+					<button class="btn btn-danger" onclick={() => (pendingDelete = 'delete')}>Delete</button>
+				{/if}
 			{/if}
 		</div>
 	</div>
 
 	{#if editing}
 		<div class="card edit-card">
-			<ObligationForm
-				initial={obligation}
-				busy={saving}
-				onSubmit={saveEdit}
-				onCancel={() => (editing = false)}
-			/>
+			{#if isBill}
+				<BillForm
+					initial={obligation}
+					busy={saving}
+					onSubmit={saveEdit}
+					onCancel={() => (editing = false)}
+				/>
+			{:else}
+				<ObligationForm
+					initial={obligation}
+					busy={saving}
+					onSubmit={saveEdit}
+					onCancel={() => (editing = false)}
+				/>
+			{/if}
 		</div>
 	{/if}
 
@@ -182,22 +228,42 @@
 			<b>{formatMoney(obligation.est_amount ?? obligation.amount)}</b>
 			{#if isDerived}<span>Estimated · average of the last 3 bills</span>{/if}
 		</div>
-		<div class="fact">
-			<span>Frequency</span>
-			<b>
-				{obligation.frequency.replace('_', ' ')}
-				{#if obligation.interval_days} · {obligation.interval_days} days after previous bill{/if}
-			</b>
-		</div>
-		<div class="fact"><span>Billing period</span><b>{formatDate(obligation.billing_start)} → {formatDate(obligation.billing_end)}</b></div>
-		<div class="fact"><span>Portal</span><b>{#if obligation.portal_url}<a href={obligation.portal_url} target="_blank" rel="noopener">Open portal</a>{:else}—{/if}</b></div>
+		{#if isBill}
+			<div class="fact">
+				<span>Paid</span>
+				<b>{obligation.paid_amount != null ? formatMoney(obligation.paid_amount) : '—'}</b>
+			</div>
+			{#if obligation.paid_date}
+				<div class="fact"><span>Paid date</span><b>{formatDate(obligation.paid_date)}</b></div>
+				<div class="fact"><span>Method</span><b>{obligation.method ?? '—'}</b></div>
+				<div class="fact"><span>Reference</span><b>{obligation.reference ?? '—'}</b></div>
+			{/if}
+		{:else}
+			<div class="fact">
+				<span>Frequency</span>
+				<b>
+					{obligation.frequency.replace('_', ' ')}
+					{#if obligation.interval_days} · {obligation.interval_days} days after previous bill{/if}
+				</b>
+			</div>
+		{/if}
+		{#if obligation.portal_url}
+			<div class="fact"><span>Portal</span><b><a href={obligation.portal_url} target="_blank" rel="noopener">Open portal</a></b></div>
+		{/if}
 		{#if obligation.notes}<div class="fact wide"><span>Notes</span><b>{obligation.notes}</b></div>{/if}
 	</div>
 
-	<div class="card">
-		<h2>Payment history</h2>
-		<PaymentTable payments={payments} showDelete={true} onDelete={(p) => (pendingPaymentDelete = p)} />
-	</div>
+	{#if isBill}
+		<div class="card">
+			<h2>Payment history</h2>
+			<PaymentTable payments={payments} />
+			{#if obligation.status === 'paid'}
+				<p class="hint">
+					Payments are recorded on the bill itself. Delete this bill to remove its payment record.
+				</p>
+			{/if}
+		</div>
+	{/if}
 
 	<div class="card">
 		<DocumentsPanel entityType="obligation" entityId={obligation.id} />
@@ -214,28 +280,34 @@
 	/>
 {/if}
 
+{#if showGenerate}
+	<ConfirmDialog
+		title="Generate bills?"
+		message="Create every missing bill for this template (and all other open templates) up to 6 months out. Already-generated bills are kept."
+		confirmLabel="Generate bills"
+		onConfirm={confirmGenerate}
+		onCancel={() => (showGenerate = false)}
+	/>
+{/if}
+
 {#if pendingDelete === 'cancel'}
 	<ConfirmDialog
-		title="Cancel obligation?"
-		message="This stops tracking the obligation. It will not appear in overdue or upcoming lists."
-		confirmLabel="Cancel obligation"
+		title={isBill ? 'Cancel bill?' : 'Cancel template?'}
+		message={isBill
+			? 'This marks the bill canceled. It will not appear in overdue or upcoming lists.'
+			: 'This stops generating bills from this template. Existing bills are kept.'}
+		confirmLabel={isBill ? 'Cancel bill' : 'Cancel template'}
 		onConfirm={confirmCancel}
 		onCancel={() => (pendingDelete = null)}
 	/>
 {:else if pendingDelete === 'delete'}
 	<ConfirmDialog
-		title="Delete obligation?"
-		message="This permanently removes the obligation and its payments."
+		title={isBill ? 'Delete bill?' : 'Delete template?'}
+		message={isBill
+			? 'This permanently removes the bill and its payment record.'
+			: 'This permanently removes the template and any bills generated from it.'}
 		onConfirm={confirmDelete}
 		onCancel={() => (pendingDelete = null)}
-	/>
-{/if}
-
-{#if pendingPaymentDelete}
-	<ConfirmDialog
-		message={`Delete payment of ${formatMoney(pendingPaymentDelete.amount)} from ${formatDate(pendingPaymentDelete.paid_date)}? This does not undo the obligation's next due date.`}
-		onConfirm={confirmPaymentDelete}
-		onCancel={() => (pendingPaymentDelete = null)}
 	/>
 {/if}
 
@@ -244,6 +316,15 @@
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
+	}
+	.kind-chip {
+		font-size: 11px;
+		font-weight: 600;
+		text-transform: uppercase;
+		color: var(--primary);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		padding: 0.1rem 0.4rem;
 	}
 	.subtitle {
 		margin: 0.25rem 0 0;

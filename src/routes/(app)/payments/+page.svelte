@@ -2,8 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import PaymentTable from '$lib/components/payments/PaymentTable.svelte';
-	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
-	import { formatMoney, formatDate } from '$lib/utils/format.js';
+	import { formatDate } from '$lib/utils/format.js';
 
 	let payments = [];
 	let loading = true;
@@ -11,7 +10,6 @@
 	let from = '';
 	let to = '';
 	let crossEntityOnly = false;
-	let pendingDelete = null;
 
 	onMount(reload);
 
@@ -30,22 +28,12 @@
 			loading = false;
 		}
 	}
-
-	async function confirmDelete() {
-		try {
-			await api.deletePayment(pendingDelete.id);
-			pendingDelete = null;
-			await reload();
-		} catch (e) {
-			error = e.message;
-		}
-	}
 </script>
 
 <div class="page-header">
 	<div>
 		<h1>Payments</h1>
-		<p class="subtitle">Everything that has been paid, across all entities.</p>
+		<p class="subtitle">Everything that has been paid — bill payments and billback settlements — across all entities.</p>
 	</div>
 </div>
 
@@ -70,15 +58,7 @@
 {#if loading}
 	<p class="empty">Loading…</p>
 {:else}
-	<PaymentTable payments={payments} showDelete={true} onDelete={(p) => (pendingDelete = p)} />
-{/if}
-
-{#if pendingDelete}
-	<ConfirmDialog
-		message={`Delete payment of ${formatMoney(pendingDelete.amount)} from ${formatDate(pendingDelete.paid_date)}?`}
-		onConfirm={confirmDelete}
-		onCancel={() => (pendingDelete = null)}
-	/>
+	<PaymentTable payments={payments} />
 {/if}
 
 <style>

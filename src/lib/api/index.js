@@ -6,7 +6,8 @@ import * as properties from './properties.js';
 import * as tenants from './tenants.js';
 import * as vendors from './vendors.js';
 import * as loans from './loans.js';
-import * as obligations from './obligations.js';
+import * as templates from './templates.js';
+import * as bills from './bills.js';
 import * as payments from './payments.js';
 import * as billbacks from './billbacks.js';
 import * as documents from './documents.js';
@@ -21,7 +22,8 @@ export const api = {
 	...tenants,
 	...vendors,
 	...loans,
-	...obligations,
+	...templates,
+	...bills,
 	...payments,
 	...billbacks,
 	...documents,
