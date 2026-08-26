@@ -6,6 +6,7 @@
 	import BillbackForm from '$lib/components/billback/BillbackForm.svelte';
 	import SettleBillbackModal from '$lib/components/billback/SettleBillbackModal.svelte';
 	import { api } from '$lib/api';
+	import { base } from '$app/paths';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
 
 	let rows = [];
@@ -104,7 +105,7 @@
 			<tbody>
 				{#each visible as b (b.id)}
 					<tr>
-						<td>{b.responsible_party_display ?? '—'}</td>
+						<td><a href={`${base}/billbacks/${b.id}`}>{b.responsible_party_display ?? '—'}</a></td>
 						<td>{formatDate(b.issued_date)}</td>
 						<td>
 							{b.description ?? '—'}
