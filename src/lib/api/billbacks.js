@@ -13,6 +13,13 @@ export async function getBillbacks({ status } = {}) {
 	return unwrap(await query);
 }
 
+export async function getBillbackById(id) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase.from('v_billbacks').select('*').eq('organization_id', orgId).eq('id', id).single()
+	);
+}
+
 // Billbacks that still need money to come in.
 export async function getOutstandingBillbacks() {
 	const orgId = getOrgId();

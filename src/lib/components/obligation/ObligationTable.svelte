@@ -16,8 +16,8 @@
 	$: columns = [
 		{ key: 'name', label: 'Name', format: 'text', value: (o) => o.name },
 		{ key: 'entity', label: 'Entity', format: 'text', value: (o) => o.ownership_entity_name },
-		{ key: 'property', label: 'Property', format: 'text', value: (o) => o.property_name },
-		{ key: 'tenant', label: 'Tenant', format: 'text', value: (o) => o.tenant_name },
+		{ key: 'property', label: 'Property', format: 'text', value: (o) => o.property_name && o.property_address1 ? `${o.property_name} - ${o.property_address1}` : (o.property_name ?? '—') },
+		{ key: 'lender', label: 'Lender', format: 'text', value: (o) => o.loan_name ?? '—' },
 		{ key: 'category', label: 'Category', format: 'text', value: (o) => o.category },
 		{ key: 'due', label: 'Due', format: 'date', value: (o) => o.next_due_date },
 		{ key: 'amount', label: 'Amount', format: 'money', value: (o) => o.est_amount ?? o.amount },
@@ -97,8 +97,8 @@
 								<a href={`${base}/obligations/${r.ob.id}`}>{r.ob.name}</a>
 							</td>
 							<td>{r.ob.ownership_entity_name ?? '—'}</td>
-							<td>{r.ob.property_name ?? '—'}</td>
-							<td>{r.ob.tenant_name ?? '—'}</td>
+							<td>{r.ob.property_name && r.ob.property_address1 ? `${r.ob.property_name} - ${r.ob.property_address1}` : (r.ob.property_name ?? '—')}</td>
+							<td>{r.ob.loan_name ?? '—'}</td>
 							<td>{r.ob.category}</td>
 							<td><DueChip dueDate={r.ob.next_due_date} /></td>
 							<td class="num">

@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { api } from '$lib/api';
-	import ObligationTable from '$lib/components/obligation/ObligationTable.svelte';
+	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
+	import DueChip from '$lib/components/ui/DueChip.svelte';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
 	import { sortRows, nextSort } from '$lib/utils/sort.js';
 
@@ -10,14 +11,22 @@
 	let bills = [];
 	let templates = [];
 	let entities = [];
+	let properties = [];
+	let loans = [];
 	let loading = true;
 	let error = '';
 
 	let search = '';
 	let status = 'all';
-	let category = '';
 	let entityId = '';
 	let groupByProperty = false;
+
+	let loanSearch = '';
+	let utilitySearch = '';
+	let loanSortKey = '';
+	let loanSortDir = 'asc';
+	let utilitySortKey = '';
+	let utilitySortDir = 'asc';
 
 	let tplSortKey = '';
 	let tplSortDir = 'asc';
@@ -26,24 +35,90 @@
 		{ value: 'all', label: 'All statuses' },
 		{ value: 'open', label: 'Open' },
 		{ value: 'overdue', label: 'Overdue' },
-		{ value: 'paid', label: 'Paid' },
 		{ value: 'canceled', label: 'Canceled' }
 	];
-	const CATEGORIES = [
-		'water',
-		'electric',
-		'tax',
-		'insurance',
-		'loan_payment',
-		'maintenance',
-		'service',
-		'reimbursement',
-		'other'
+
+	$: propertyMap = Object.fromEntries(properties.map((p) => [p.id, p]));
+	$: loanMap = Object.fromEntries(loans.map((l) => [l.id, l]));
+
+	// --- Bills: exclude paid, split by category ---
+	$: activeBills = bills.filter((b) => b.status !== 'paid');
+	$: displayBills =
+		status === 'overdue'
+			? activeBills.filter((b) => b.is_overdue && b.status === 'open')
+			: activeBills;
+	$: loanBills = displayBills.filter((b) => b.category === 'loan_payment');
+	$: utilityBills = displayBills.filter((b) => b.category !== 'loan_payment');
+
+	$: visibleLoanBills = loanBills.filter((b) =>
+		b.name.toLowerCase().includes(loanSearch.trim().toLowerCase())
+	);
+	$: visibleUtilityBills = utilityBills.filter((b) =>
+		b.name.toLowerCase().includes(utilitySearch.trim().toLowerCase())
+	);
+
+	$: loanColumns = [
+		{ key: 'name', label: 'Bill', format: 'text', value: (b) => b.name },
+		{
+			key: 'lender',
+			label: 'Lender',
+			format: 'text',
+			value: (b) => loanMap[b.loan_id]?.lender
+		},
+		{
+			key: 'entity',
+			label: 'Entity',
+			format: 'text',
+			value: (b) => loanMap[b.loan_id]?.ownership_entity_name
+		},
+		{
+			key: 'property',
+			label: 'Property',
+			format: 'text',
+			value: (b) => propertyMap[loanMap[b.loan_id]?.property_id]?.address1
+		},
+		{ key: 'due', label: 'Due', format: 'date', value: (b) => b.next_due_date },
+		{ key: 'amount', label: 'Amount', format: 'money', value: (b) => b.est_amount ?? b.amount },
+		{
+			key: 'status',
+			label: 'Status',
+			format: 'text',
+			value: (b) => (b.is_overdue ? 'overdue' : b.status)
+		}
 	];
+	$: loanSortCol = loanColumns.find((c) => c.key === loanSortKey) ?? null;
+	$: sortedLoanBills = sortRows(visibleLoanBills, loanSortCol, loanSortDir, loanSortCol?.value);
 
-	$: query = { search, status, category, entityId };
+	$: utilityColumns = [
+		{ key: 'name', label: 'Name', format: 'text', value: (b) => b.name },
+		{ key: 'entity', label: 'Entity', format: 'text', value: (b) => b.ownership_entity_name },
+		{
+			key: 'property',
+			label: 'Property',
+			format: 'text',
+			value: (b) => propertyMap[b.property_id]?.address1 ?? b.property_name
+		},
+		{ key: 'tenant', label: 'Tenant', format: 'text', value: (b) => b.tenant_name },
+		{ key: 'category', label: 'Category', format: 'text', value: (b) => b.category },
+		{ key: 'due', label: 'Due', format: 'date', value: (b) => b.next_due_date },
+		{ key: 'amount', label: 'Amount', format: 'money', value: (b) => b.est_amount ?? b.amount },
+		{
+			key: 'status',
+			label: 'Status',
+			format: 'text',
+			value: (b) => (b.is_overdue ? 'overdue' : b.status)
+		}
+	];
+	$: utilitySortCol = utilityColumns.find((c) => c.key === utilitySortKey) ?? null;
+	$: sortedUtilityBills = sortRows(
+		visibleUtilityBills,
+		utilitySortCol,
+		utilitySortDir,
+		utilitySortCol?.value
+	);
 
-	$: visible = (tab === 'bills' ? bills : templates).filter((o) =>
+	// --- Templates ---
+	$: visibleTemplates = templates.filter((o) =>
 		o.name.toLowerCase().includes(search.trim().toLowerCase())
 	);
 
@@ -59,7 +134,7 @@
 	];
 
 	$: tplSortCol = tplColumns.find((c) => c.key === tplSortKey) ?? null;
-	$: tplSorted = sortRows(visible, tplSortCol, tplSortDir, tplSortCol?.value);
+	$: tplSorted = sortRows(visibleTemplates, tplSortCol, tplSortDir, tplSortCol?.value);
 
 	$: tplDisplayRows = (() => {
 		if (!groupByProperty) return tplSorted.map((t) => ({ kind: 'row', t }));
@@ -79,6 +154,16 @@
 		return rows;
 	})();
 
+	function isDerived(ob) {
+		return ob.est_amount != null && Number(ob.est_amount) !== Number(ob.amount);
+	}
+
+	function toggleLoanSort(key) {
+		({ loanSortKey, loanSortDir } = nextSort(key, loanSortKey, loanSortDir));
+	}
+	function toggleUtilitySort(key) {
+		({ utilitySortKey, utilitySortDir } = nextSort(key, utilitySortKey, utilitySortDir));
+	}
 	function toggleTpl(key) {
 		({ tplSortKey, tplSortDir } = nextSort(key, tplSortKey, tplSortDir));
 	}
@@ -89,14 +174,18 @@
 		loading = true;
 		error = '';
 		try {
-			const [b, t, e] = await Promise.all([
+			const [b, t, e, p, l] = await Promise.all([
 				loadBills(),
 				api.getTemplates(),
-				api.getOwnershipEntities()
+				api.getOwnershipEntities(),
+				api.getProperties(),
+				api.getLoans()
 			]);
 			bills = b;
 			templates = t;
 			entities = e;
+			properties = p;
+			loans = l;
 		} catch (e2) {
 			error = e2.message;
 		} finally {
@@ -106,14 +195,12 @@
 
 	async function loadBills() {
 		const opts = {
-			category: query.category || undefined,
-			ownershipEntityId: query.entityId || undefined
+			ownershipEntityId: entityId || undefined
 		};
-		if (query.status === 'all' || query.status === 'overdue') {
-			// fetch broad set; overdue is derived (displayed via is_overdue)
+		if (status === 'all' || status === 'overdue') {
 			return api.getBills(opts);
 		}
-		return api.getBills({ ...opts, status: query.status });
+		return api.getBills({ ...opts, status });
 	}
 
 	async function reload() {
@@ -144,7 +231,7 @@
 
 <div class="tabs">
 	<button class:active={tab === 'bills'} onclick={() => (tab = 'bills')}>
-		Bills <span class="count">{bills.length}</span>
+		Bills <span class="count">{activeBills.length}</span>
 	</button>
 	<button class:active={tab === 'templates'} onclick={() => (tab = 'templates')}>
 		Templates <span class="count">{templates.length}</span>
@@ -153,28 +240,21 @@
 
 {#if !loading}
 	<div class="filters">
-		<input
-			class="input search"
-			placeholder="Search by name…"
-			bind:value={search}
-		/>
 		{#if tab === 'bills'}
 			<select class="select" bind:value={status} onchange={reload}>
 				{#each STATUSES as s}<option value={s.value}>{s.label}</option>{/each}
-			</select>
-			<select class="select" bind:value={category} onchange={reload}>
-				<option value="">All categories</option>
-				{#each CATEGORIES as c}<option value={c}>{c.replace('_', ' ')}</option>{/each}
 			</select>
 			<select class="select" bind:value={entityId} onchange={reload}>
 				<option value="">All entities</option>
 				{#each entities as e}<option value={e.id}>{e.name}</option>{/each}
 			</select>
+		{:else}
+			<input class="input search" placeholder="Search by name…" bind:value={search} />
+			<label class="group-toggle">
+				<input type="checkbox" bind:checked={groupByProperty} />
+				Group by property
+			</label>
 		{/if}
-		<label class="group-toggle">
-			<input type="checkbox" bind:checked={groupByProperty} />
-			Group by property
-		</label>
 	</div>
 {/if}
 
@@ -183,18 +263,104 @@
 {#if loading}
 	<p class="empty">Loading…</p>
 {:else if tab === 'bills'}
-	{#if status === 'overdue'}
-		<ObligationTable
-			obligations={visible.filter((o) => o.is_overdue && o.status === 'open')}
-			showReceived={true}
-			groupByProperty={groupByProperty}
-		/>
+	{#if activeBills.length === 0}
+		<p class="empty">No bills yet.</p>
 	{:else}
-		<ObligationTable
-			obligations={visible}
-			showReceived={true}
-			groupByProperty={groupByProperty}
-		/>
+		<!-- Loan Payments -->
+		<div class="bill-section">
+			<div class="section-header">
+				<h2>Loan Payments</h2>
+				<input
+					class="input section-search"
+					placeholder="Search loans…"
+					bind:value={loanSearch}
+				/>
+			</div>
+			{#if sortedLoanBills.length === 0}
+				<p class="empty">No loan payments.</p>
+			{:else}
+				<div class="table-scroll">
+					<table>
+						<thead>
+							<tr>
+								{#each loanColumns as col (col.key)}
+									<th
+										class:sortable={true}
+										class:sorted={loanSortKey === col.key}
+										onclick={() => toggleLoanSort(col.key)}
+									>{col.label}{#if loanSortKey === col.key}<span class="sort-ind">{loanSortDir === 'asc' ? '▲' : '▼'}</span>{/if}</th>
+								{/each}
+							</tr>
+						</thead>
+						<tbody>
+							{#each sortedLoanBills as ob (ob.id)}
+								<tr>
+									<td>
+										<a href={`${base}/obligations/${ob.id}`}>{ob.name}</a>
+									</td>
+									<td>{loanMap[ob.loan_id]?.lender ?? '—'}</td>
+									<td>{loanMap[ob.loan_id]?.ownership_entity_name ?? '—'}</td>
+									<td>{propertyMap[loanMap[ob.loan_id]?.property_id]?.address1 ?? '—'}</td>
+									<td><DueChip dueDate={ob.next_due_date} /></td>
+									<td class="num">{formatMoney(ob.est_amount ?? ob.amount)}</td>
+									<td><StatusBadge status={ob.is_overdue ? 'overdue' : ob.status} /></td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Utility Bills -->
+		<div class="bill-section">
+			<div class="section-header">
+				<h2>Utility Bills</h2>
+				<input
+					class="input section-search"
+					placeholder="Search utilities…"
+					bind:value={utilitySearch}
+				/>
+			</div>
+			{#if sortedUtilityBills.length === 0}
+				<p class="empty">No utility bills.</p>
+			{:else}
+				<div class="table-scroll">
+					<table>
+						<thead>
+							<tr>
+								{#each utilityColumns as col (col.key)}
+									<th
+										class:sortable={true}
+										class:sorted={utilitySortKey === col.key}
+										onclick={() => toggleUtilitySort(col.key)}
+									>{col.label}{#if utilitySortKey === col.key}<span class="sort-ind">{utilitySortDir === 'asc' ? '▲' : '▼'}</span>{/if}</th>
+								{/each}
+							</tr>
+						</thead>
+						<tbody>
+							{#each sortedUtilityBills as ob (ob.id)}
+								<tr>
+									<td>
+										<a href={`${base}/obligations/${ob.id}`}>{ob.name}</a>
+									</td>
+									<td>{ob.ownership_entity_name ?? '—'}</td>
+									<td>{propertyMap[ob.property_id]?.address1 ?? ob.property_name ?? '—'}</td>
+									<td>{ob.tenant_name ?? '—'}</td>
+									<td>{ob.category}</td>
+									<td><DueChip dueDate={ob.next_due_date} /></td>
+									<td class="num">
+										{formatMoney(ob.est_amount ?? ob.amount)}
+										{#if isDerived(ob)}<span class="est" title="Estimated: average of the last 3 bills">est</span>{/if}
+									</td>
+									<td><StatusBadge status={ob.is_overdue ? 'overdue' : ob.status} /></td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+		</div>
 	{/if}
 {:else}
 	{#if templates.length === 0}
@@ -325,5 +491,37 @@
 	.group-count {
 		margin-left: 0.5rem;
 		font-weight: 500;
+	}
+	.bill-section {
+		margin-bottom: 1.5rem;
+	}
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 0.5rem;
+	}
+	.section-header h2 {
+		margin: 0;
+		font-size: 1rem;
+	}
+	.section-search {
+		max-width: 260px;
+	}
+	.table-scroll {
+		max-height: 460px;
+		overflow-y: auto;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+	}
+	.table-scroll table {
+		margin: 0;
+	}
+	.est {
+		font-size: 11px;
+		color: var(--text-muted);
+		margin-left: 0.25rem;
+		text-transform: uppercase;
 	}
 </style>

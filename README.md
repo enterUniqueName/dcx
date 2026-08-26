@@ -82,3 +82,10 @@ npm run build
 Then push the contents of `build/` to the `gh-pages` branch (the built site lives at the root of that branch). In GitHub Desktop: commit the `build/` output to `gh-pages` and push. GitHub Pages serves it at https://enterUniqueName.github.io/dcx.
 
 Login credentials can be created with Dave.
+
+## Future considerations
+
+- **Rent payment tracking** — `rent_schedule` records the rent amount per period, but there is no way to track whether tenants have paid, how much is owed, or who is behind. A `rent_payments` table and an arrears view would close this gap.
+- **Loan detail pages** — loans are listed but have no detail page (`/loans/[id]`). A detail view would let users drill into a specific loan's payment history and balance.
+- **Property → entity auto-fill on templates** — when creating an obligation template, selecting a property should auto-fill the ownership entity from the property record. (Partially implemented in the form; could be extended to the bill creation flow.)
+- **Rent receivables vs. expense payables** — the obligations system tracks expenses the owner pays. Rent is income the owner receives. These are different flows and may warrant separate modules.

@@ -2,7 +2,7 @@
 import { supabase, unwrap } from './client.js';
 import { getOrgId } from './context.js';
 
-export async function getPayments({ obligationId } = {}) {
+export async function getPayments({ obligationId, billbackId } = {}) {
 	const orgId = getOrgId();
 	let query = supabase
 		.from('v_payments')
@@ -10,6 +10,7 @@ export async function getPayments({ obligationId } = {}) {
 		.eq('organization_id', orgId)
 		.order('paid_date', { ascending: false });
 	if (obligationId) query = query.eq('obligation_id', obligationId);
+	if (billbackId) query = query.eq('billback_id', billbackId);
 	return unwrap(await query);
 }
 

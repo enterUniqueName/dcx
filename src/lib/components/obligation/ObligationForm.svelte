@@ -77,6 +77,14 @@
 		(p) => !form.ownership_entity_id || p.ownership_entity_id === form.ownership_entity_id
 	);
 
+	function onPropertyChange() {
+		if (!form.property_id) return;
+		const prop = properties.find((p) => p.id === form.property_id);
+		if (prop?.ownership_entity_id && prop.ownership_entity_id !== form.ownership_entity_id) {
+			form.ownership_entity_id = prop.ownership_entity_id;
+		}
+	}
+
 	// Water/electric bills are usage-based: default the variable-amount flag
 	// on. Only sets true, so a manually unchecked flag stays off until the
 	// category is switched away and back.
@@ -291,7 +299,7 @@
 		</div>
 		<div class="field">
 			<label for="ob-property">Property</label>
-			<select id="ob-property" class="select" bind:value={form.property_id}>
+			<select id="ob-property" class="select" bind:value={form.property_id} onchange={onPropertyChange}>
 				<option value="">—</option>
 				{#each entityProperties as p}<option value={p.id}>{p.name}</option>{/each}
 			</select>
