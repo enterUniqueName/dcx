@@ -73,3 +73,11 @@ export async function deleteBillback(id) {
 		await supabase.from('billbacks').delete().eq('organization_id', orgId).eq('id', id)
 	);
 }
+
+export async function updateBillback(id, data) {
+	const orgId = getOrgId();
+	const { allocations, ...billback } = data;
+	return unwrap(
+		await supabase.from('billbacks').update(billback).eq('organization_id', orgId).eq('id', id).select()
+	);
+}

@@ -6,6 +6,8 @@
 	export let busy = false;
 	export let onSubmit = null;
 	export let onCancel = null;
+	export let initial = null;
+	export let initialAllocations = [];
 
 	let entities = [];
 	let properties = [];
@@ -45,10 +47,44 @@
 				api.getTenants(),
 				api.getVendors()
 			]);
+			if (initial) populateFromInitial();
 		} catch (e) {
 			loadError = e.message;
 		}
 	});
+
+	function populateFromInitial() {
+		const v = vendors.find((x) => x.id === initial.vendor_id);
+		form.paidDate = initial.issued_date ?? toISODate(new Date());
+		form.paidAmount = initial.paid_amount ?? '';
+		form.checkNumber = initial.check_number ?? '';
+		form.vendorName = v?.name ?? '';
+		form.memo = initial.description ?? '';
+		form.propertyId = initial.property_id ?? '';
+		form.fromEntityId = initial.from_ownership_entity_id ?? '';
+		form.markupPercent = initial.markup_percent ?? '';
+		form.responsibility = initial.responsibility_type ?? 'tenant';
+		form.notes = initial.notes ?? '';
+
+		if (initialAllocations.length > 0) {
+			if (form.responsibility === 'tenant') {
+				const a = initialAllocations.find((x) => x.responsible_type === 'tenant');
+				if (a) form.tenantId = a.tenant_id ?? '';
+			} else if (form.responsibility === 'ownership_entity') {
+				const a = initialAllocations.find((x) => x.responsible_type === 'ownership_entity');
+				if (a) form.landlordId = a.ownership_entity_id ?? '';
+			} else if (form.responsibility === 'split') {
+				form.splitRows = initialAllocations.map((a) => ({
+					responsibleType: a.responsible_type,
+					tenantId: a.tenant_id ?? '',
+					entityId: a.ownership_entity_id ?? '',
+					amount: a.amount ?? '',
+					percent: a.percentage ?? ''
+				}));
+				if (initialAllocations[0]?.allocation_type === 'percent') form.splitMode = 'percent';
+			}
+		}
+	}
 
 	function round2(n) {
 		return Math.round(n * 100) / 100;

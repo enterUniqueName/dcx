@@ -50,8 +50,7 @@
 		saving = true;
 		error = '';
 		try {
-			await api.deleteBillback(billback.id);
-			await api.createBillback({ ...payload, id: billback.id });
+			await api.updateBillback(billback.id, payload);
 			editing = false;
 			await load();
 		} catch (e) {
@@ -128,6 +127,7 @@
 		<div class="card edit-card">
 			<BillbackForm
 				initial={billback}
+				initialAllocations={allocations}
 				busy={saving}
 				onSubmit={saveEdit}
 				onCancel={() => (editing = false)}
