@@ -23,8 +23,8 @@
 		memo: '',
 		propertyId: '',
 		fromEntityId: '',
-		markupPercent: '',
-		responsibility: 'tenant',
+		markupPercent: '12.5',
+		responsibility: 'ownership_entity',
 		tenantId: '',
 		landlordId: '',
 		splitMode: 'amount',
@@ -47,11 +47,22 @@
 				api.getTenants(),
 				api.getVendors()
 			]);
-			if (initial) populateFromInitial();
+			if (initial) {
+				populateFromInitial();
+			} else {
+				const plb = entities.find((e) => e.name?.toUpperCase() === 'PLB');
+				if (plb) form.fromEntityId = plb.id;
+			}
 		} catch (e) {
 			loadError = e.message;
 		}
 	});
+
+	function onPropertyChange() {
+		if (!form.propertyId || form.responsibility !== 'ownership_entity' || form.landlordId) return;
+		const prop = properties.find((p) => p.id === form.propertyId);
+		if (prop?.ownership_entity_id) form.landlordId = prop.ownership_entity_id;
+	}
 
 	function populateFromInitial() {
 		const v = vendors.find((x) => x.id === initial.vendor_id);
@@ -241,7 +252,7 @@
 		</div>
 		<div class="field">
 			<label for="bb-property">Property</label>
-			<select id="bb-property" class="select" bind:value={form.propertyId}>
+			<select id="bb-property" class="select" bind:value={form.propertyId} onchange={onPropertyChange}>
 				<option value="">—</option>
 				{#each properties as p}<option value={p.id}>{p.name}</option>{/each}
 			</select>
