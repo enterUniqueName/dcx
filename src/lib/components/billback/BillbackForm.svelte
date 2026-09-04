@@ -50,7 +50,7 @@
 			if (initial) {
 				populateFromInitial();
 			} else {
-				const plb = entities.find((e) => e.name?.toUpperCase() === 'PLB');
+				const plb = entities.find((e) => e.name?.trim().toUpperCase().startsWith('PLB'));
 				if (plb) form.fromEntityId = plb.id;
 			}
 		} catch (e) {
@@ -358,7 +358,7 @@
 	<div class="row">
 		<button class="btn" onclick={onCancel} disabled={busy}>Cancel</button>
 		<button class="btn btn-primary" onclick={submit} disabled={busy}>
-			{busy ? 'Saving…' : 'Create billback'}
+			{busy ? 'Saving…' : initial ? 'Save Changes' : 'Create billback'}
 		</button>
 	</div>
 {/if}

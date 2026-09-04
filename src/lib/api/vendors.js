@@ -47,9 +47,10 @@ export async function findOrCreateVendor(name) {
 			.select('id')
 			.eq('organization_id', orgId)
 			.ilike('name', trimmed)
-			.maybeSingle()
+			.order('created_at', { ascending: true })
+			.limit(1)
 	);
-	if (existing) return existing.id;
+	if (Array.isArray(existing) && existing.length > 0) return existing[0].id;
 	const rows = unwrap(
 		await supabase
 			.from('vendors')
