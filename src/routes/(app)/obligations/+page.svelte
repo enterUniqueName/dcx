@@ -23,6 +23,7 @@
 
 	let loanSearch = '';
 	let utilitySearch = '';
+	let utilityCategory = '';
 	let loanSortKey = '';
 	let loanSortDir = 'asc';
 	let utilitySortKey = '';
@@ -53,9 +54,10 @@
 	$: visibleLoanBills = loanBills.filter((b) =>
 		b.name.toLowerCase().includes(loanSearch.trim().toLowerCase())
 	);
-	$: visibleUtilityBills = utilityBills.filter((b) =>
-		b.name.toLowerCase().includes(utilitySearch.trim().toLowerCase())
-	);
+	$: utilityCategories = [...new Set(utilityBills.map((b) => b.category))].sort();
+	$: visibleUtilityBills = utilityBills
+		.filter((b) => b.name.toLowerCase().includes(utilitySearch.trim().toLowerCase()))
+		.filter((b) => !utilityCategory || b.category === utilityCategory);
 
 	$: loanColumns = [
 		{ key: 'name', label: 'Bill', format: 'text', value: (b) => b.name },
@@ -159,13 +161,19 @@
 	}
 
 	function toggleLoanSort(key) {
-		({ loanSortKey, loanSortDir } = nextSort(key, loanSortKey, loanSortDir));
+		const r = nextSort(key, loanSortKey, loanSortDir);
+		loanSortKey = r.key;
+		loanSortDir = r.dir;
 	}
 	function toggleUtilitySort(key) {
-		({ utilitySortKey, utilitySortDir } = nextSort(key, utilitySortKey, utilitySortDir));
+		const r = nextSort(key, utilitySortKey, utilitySortDir);
+		utilitySortKey = r.key;
+		utilitySortDir = r.dir;
 	}
 	function toggleTpl(key) {
-		({ tplSortKey, tplSortDir } = nextSort(key, tplSortKey, tplSortDir));
+		const r = nextSort(key, tplSortKey, tplSortDir);
+		tplSortKey = r.key;
+		tplSortDir = r.dir;
 	}
 
 	onMount(load);
@@ -316,11 +324,17 @@
 		<div class="bill-section">
 			<div class="section-header">
 				<h2>Utility Bills</h2>
-				<input
-					class="input section-search"
-					placeholder="Search utilities…"
-					bind:value={utilitySearch}
-				/>
+				<div class="section-filters">
+					<select class="select" bind:value={utilityCategory}>
+						<option value="">All categories</option>
+						{#each utilityCategories as cat}<option value={cat}>{cat.replace('_', ' ')}</option>{/each}
+					</select>
+					<input
+						class="input section-search"
+						placeholder="Search utilities…"
+						bind:value={utilitySearch}
+					/>
+				</div>
 			</div>
 			{#if sortedUtilityBills.length === 0}
 				<p class="empty">No utility bills.</p>
@@ -517,6 +531,22 @@
 	}
 	.table-scroll table {
 		margin: 0;
+	}
+	.table-scroll thead {
+		position: sticky;
+		top: 0;
+		z-index: 1;
+	}
+	.table-scroll thead th {
+		background: var(--surface, #fff);
+	}
+	.section-filters {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.section-filters .select {
+		width: auto;
 	}
 	.est {
 		font-size: 11px;

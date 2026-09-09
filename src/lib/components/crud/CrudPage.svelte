@@ -42,7 +42,9 @@
 	let sortDir = 'asc';
 
 	function sort(col) {
-		({ sortKey, sortDir } = nextSort(col.key, sortKey, sortDir));
+		const r = nextSort(col.key, sortKey, sortDir);
+		sortKey = r.key;
+		sortDir = r.dir;
 	}
 
 	function toggleExpanded(id) {

@@ -58,7 +58,9 @@
 	})();
 
 	function toggle(key) {
-		({ sortKey, sortDir } = nextSort(key, sortKey, sortDir));
+		const r = nextSort(key, sortKey, sortDir);
+		sortKey = r.key;
+		sortDir = r.dir;
 	}
 
 	function isDerived(ob) {
