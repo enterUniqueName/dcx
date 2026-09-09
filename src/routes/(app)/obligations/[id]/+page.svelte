@@ -26,6 +26,7 @@
 	let showGenerate = false;
 	let saving = false;
 	let pendingDelete = null;
+	let template = null;
 
 	$: isBill = obligation?.kind === 'bill';
 	$: isDerived =
@@ -49,6 +50,13 @@
 			obligation = ob;
 			payments = pays;
 			entities = ents;
+			if (ob.series_id) {
+				try {
+					template = await api.getTemplate(ob.series_id);
+				} catch { template = null; }
+			} else {
+				template = null;
+			}
 		} catch (e) {
 			error = e.message;
 		} finally {
@@ -245,6 +253,12 @@
 					{obligation.frequency.replace('_', ' ')}
 					{#if obligation.interval_days} · {obligation.interval_days} days after previous bill{/if}
 				</b>
+			</div>
+		{/if}
+		{#if isBill && template}
+			<div class="fact">
+				<span>Template</span>
+				<b><a href={`${base}/obligations/${template.id}`}>{template.name}</a></b>
 			</div>
 		{/if}
 		{#if obligation.portal_url}

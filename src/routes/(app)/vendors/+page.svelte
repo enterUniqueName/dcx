@@ -1,5 +1,6 @@
 <script>
 	import CrudPage from '$lib/components/crud/CrudPage.svelte';
+	import VendorDetail from '$lib/components/vendors/VendorDetail.svelte';
 	import { api } from '$lib/api';
 
 	const columns = [
@@ -48,5 +49,6 @@
 	create={api.createVendor}
 	update={api.updateVendor}
 	remove={api.deleteVendor}
+	detail={VendorDetail}
 	stickyFirst
 />

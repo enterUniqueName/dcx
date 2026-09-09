@@ -35,6 +35,31 @@ export async function deleteVendor(id) {
 	);
 }
 
+export async function getVendorObligations(vendorId) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase
+			.from('v_obligations')
+			.select('id, name, category, property_name, next_due_date, est_amount, amount, status')
+			.eq('organization_id', orgId)
+			.eq('vendor_id', vendorId)
+			.eq('kind', 'bill')
+			.order('next_due_date')
+	);
+}
+
+export async function getVendorBillbacks(vendorId) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase
+			.from('v_billbacks')
+			.select('id, description, responsible_party_display, amount, balance, status')
+			.eq('organization_id', orgId)
+			.eq('vendor_id', vendorId)
+			.order('issued_date', { ascending: false })
+	);
+}
+
 // Resolve a typed vendor name to its id, creating the vendor row if needed.
 // Returns null for an empty name.
 export async function findOrCreateVendor(name) {

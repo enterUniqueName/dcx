@@ -6,26 +6,22 @@
 
 	export let row = null;
 
-	let properties = [];
-	let loans = [];
+	let tenants = [];
 	let obligations = [];
-	let billbacks = [];
-	let tenantRows = [];
+	let loans = [];
 	let loading = true;
 	let error = '';
 
+	$: costBreakdown = buildCostBreakdown(obligations);
+
 	onMount(async () => {
 		try {
-			[properties, loans, obligations, billbacks] = await Promise.all([
-				api.getEntityProperties(row.id),
-				api.getEntityLoans(row.id),
-				api.getEntityObligations(row.id),
-				api.getEntityBillbacks(row.id)
-			]);
-
 			const allTenants = await api.getTenants();
-			const propIds = new Set(properties.map((p) => p.id));
-			tenantRows = allTenants.filter((t) => propIds.has(t.property_id));
+			tenants = allTenants.filter((t) => t.property_id === row.id);
+			[obligations, loans] = await Promise.all([
+				api.getPropertyObligations(row.id),
+				api.getPropertyLoans(row.id)
+			]);
 		} catch (e) {
 			error = e.message;
 		} finally {
@@ -33,8 +29,13 @@
 		}
 	});
 
-	function propertyLabel(p) {
-		return p.name;
+	function buildCostBreakdown(obs) {
+		const map = new Map();
+		for (const o of obs) {
+			const cat = (o.category ?? 'Other').replace('_', ' ');
+			map.set(cat, (map.get(cat) ?? 0) + (o.est_amount ?? 0));
+		}
+		return [...map.entries()].map(([category, amount]) => ({ category, amount }));
 	}
 </script>
 
@@ -46,17 +47,18 @@
 	{:else}
 		<div class="grid">
 			<div class="section">
-				<h3>Properties</h3>
-				{#if properties.length === 0}
-					<p class="muted">No properties</p>
+				<h3>Tenant</h3>
+				{#if tenants.length === 0}
+					<p class="muted">No active tenant</p>
 				{:else}
 					<ul>
-						{#each properties as p (p.id)}
+						{#each tenants as t (t.id)}
 							<li>
-								<b>{propertyLabel(p)}</b>
+								<b>{t.name}</b>
 								<span>
-									{p.city ?? '—'}, {p.state ?? '—'} · {p.property_type.replace('_', ' ')} ·
-									{p.unit_count ?? 0} units · {p.status}
+									{formatMoney(t.monthly_rent ?? 0)}/mo ·
+									{t.lease_start ?? '—'} – {t.lease_end ?? '—'} ·
+									{t.status ?? '—'}
 								</span>
 							</li>
 						{/each}
@@ -65,15 +67,38 @@
 			</div>
 
 			<div class="section">
-				<h3>Tenants</h3>
-				{#if tenantRows.length === 0}
-					<p class="muted">No tenants</p>
+				<h3>Monthly Costs</h3>
+				{#if costBreakdown.length === 0}
+					<p class="muted">No costs</p>
 				{:else}
 					<ul>
-						{#each tenantRows as t (t.id)}
+						{#each costBreakdown as c}
 							<li>
-								<b>{t.name}</b>
-								<span>{t.property_name ?? '—'} · {formatMoney(t.monthly_rent)}/mo · {t.status}</span>
+								<b>{c.category}</b>
+								<span>{formatMoney(c.amount)}/mo</span>
+							</li>
+						{/each}
+					</ul>
+					<p class="muted total">
+						Total: {formatMoney(costBreakdown.reduce((sum, c) => sum + c.amount, 0))}/mo
+					</p>
+				{/if}
+			</div>
+
+			<div class="section">
+				<h3>Obligations</h3>
+				{#if obligations.length === 0}
+					<p class="muted">No open obligations</p>
+				{:else}
+					<ul>
+						{#each obligations as o (o.id)}
+							<li>
+								<b>{o.name}</b>
+								<span>
+									{o.category.replace('_', ' ')}
+									{o.vendor_name ? ` · ${o.vendor_name}` : ''}
+									· due {formatDate(o.next_due_date)} · {formatMoney(o.est_amount ?? o.amount)}
+								</span>
 							</li>
 						{/each}
 					</ul>
@@ -91,7 +116,7 @@
 								<b>{l.nickname || l.lender}</b>
 								<span>
 									{l.lender}{l.loan_number ? ` · #${l.loan_number}` : ''} ·
-									{formatMoney(l.monthly_payment ?? 0)}/mo · {l.status}
+									{formatMoney(l.monthly_payment ?? 0)}/mo · {formatMoney(l.current_balance ?? 0)} · {l.status}
 								</span>
 							</li>
 						{/each}
@@ -100,56 +125,9 @@
 			</div>
 
 			<div class="section">
-				<h3>Obligations</h3>
-				{#if obligations.length === 0}
-					<p class="muted">No open obligations</p>
-				{:else}
-					<ul>
-						{#each obligations as o (o.id)}
-							<li>
-								<b>{o.name}</b>
-								<span>
-									{o.category.replace('_', ' ')}
-									{o.property_name ? ` · ${o.property_name}` : ''}
-									{o.vendor_name ? ` · ${o.vendor_name}` : ''}
-									· due {formatDate(o.next_due_date)} · {formatMoney(o.est_amount ?? o.amount)}
-								</span>
-							</li>
-						{/each}
-					</ul>
-				{/if}
+				<DocumentsPanel entityType="property" entityId={row.id} />
 			</div>
-
-			<div class="section">
-				<h3>Billbacks owed</h3>
-				{#if billbacks.length === 0}
-					<p class="muted">None outstanding</p>
-				{:else}
-					<ul>
-						{#each billbacks as b (b.id)}
-							<li>
-								<b>{b.description}</b>
-								<span>
-									{b.responsible_party_display ?? b.to_entity_name ?? '—'} owes {b.from_entity_name ?? '—'} · due {formatDate(b.due_date)} ·
-									{formatMoney(b.balance)} left
-								</span>
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			</div>
-
-		{#if row.notes}
-			<div class="section notes">
-				<h3>Notes</h3>
-				<p class="muted">{row.notes}</p>
-			</div>
-		{/if}
-
-		<div class="section notes">
-			<DocumentsPanel entityType="ownership_entity" entityId={row.id} />
 		</div>
-	</div>
 	{/if}
 </div>
 
@@ -196,7 +174,8 @@
 		font-size: 13px;
 		margin: 0;
 	}
-	.notes {
-		grid-column: 1 / -1;
+	.total {
+		margin-top: 0.5rem;
+		font-weight: 600;
 	}
 </style>

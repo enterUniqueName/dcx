@@ -27,11 +27,11 @@
 	{/each}
 </div>
 
-<div hidden={active !== 'forecast'}><CashForecast /></div>
-<div hidden={active !== 'overdue'}><OverdueReport /></div>
-<div hidden={active !== 'payments'}><PaymentLogReport /></div>
-<div hidden={active !== 'billbacks'}><BillbackRegister /></div>
-<div hidden={active !== 'cross'}><CrossEntityReport /></div>
+{#if active === 'forecast'}<CashForecast />{/if}
+{#if active === 'overdue'}<OverdueReport />{/if}
+{#if active === 'payments'}<PaymentLogReport />{/if}
+{#if active === 'billbacks'}<BillbackRegister />{/if}
+{#if active === 'cross'}<CrossEntityReport />{/if}
 
 <style>
 	.tabs {

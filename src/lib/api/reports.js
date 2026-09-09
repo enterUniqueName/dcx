@@ -20,8 +20,23 @@ export async function getCashNeeded(month) {
 			.order('month')
 			.order('ownership_entity_name')
 	);
+	// Deduplicate: the view may return multiple rows per entity+month
+	// due to a cross-join between obligation_totals and billback_totals.
+	const deduped = new Map();
+	for (const r of rows) {
+		const key = `${r.ownership_entity_id}|${r.month}`;
+		const existing = deduped.get(key);
+		if (existing) {
+			existing.obligations_amount = Number(existing.obligations_amount) + Number(r.obligations_amount);
+			existing.billbacks_amount = Number(existing.billbacks_amount) + Number(r.billbacks_amount);
+			existing.total = Number(existing.total) + Number(r.total);
+		} else {
+			deduped.set(key, { ...r });
+		}
+	}
+	const result = [...deduped.values()];
 	const prefix = month ?? null;
-	return prefix ? rows.filter((r) => (r.month || '').startsWith(prefix)) : rows;
+	return prefix ? result.filter((r) => (r.month || '').startsWith(prefix)) : result;
 }
 
 // "What did one entity pay on behalf of another?" (e.g. PLB).
@@ -38,15 +53,28 @@ export async function getCrossEntityPayments({ from, to } = {}) {
 }
 
 // Everything the dashboard needs in one call.
+// Uses Promise.allSettled so one failing sub-call doesn't kill the entire dashboard.
 export async function getDashboardSnapshot() {
-	const [upcoming, overdue, received, billbacks, crossEntity, cash] = await Promise.all([
-		getUpcomingBills(),
-		getOverdueBills(),
-		getReceivedBills(),
-		getOutstandingBillbacks(),
-		getCrossEntityPayments(monthRange()),
-		getCashNeeded()
-	]);
+	const [upcomingRes, overdueRes, receivedRes, billbacksRes, crossEntityRes, cashRes] =
+		await Promise.allSettled([
+			getUpcomingBills(),
+			getOverdueBills(),
+			getReceivedBills(),
+			getOutstandingBillbacks(),
+			getCrossEntityPayments(monthRange()),
+			getCashNeeded()
+		]);
+
+	const upcoming = upcomingRes.status === 'fulfilled' ? upcomingRes.value : [];
+	const overdue = overdueRes.status === 'fulfilled' ? overdueRes.value : [];
+	const received = receivedRes.status === 'fulfilled' ? receivedRes.value : [];
+	const billbacks = billbacksRes.status === 'fulfilled' ? billbacksRes.value : [];
+	const crossEntity = crossEntityRes.status === 'fulfilled' ? crossEntityRes.value : [];
+	const cash = cashRes.status === 'fulfilled' ? cashRes.value : [];
+
+	const errors = [upcomingRes, overdueRes, receivedRes, billbacksRes, crossEntityRes, cashRes]
+		.filter((r) => r.status === 'rejected')
+		.map((r) => r.reason?.message ?? 'Unknown error');
 
 	const outstandingBillbacks = billbacks.filter((b) => b.balance > 0);
 	const billbackTotal = outstandingBillbacks.reduce((sum, b) => sum + Number(b.balance), 0);
@@ -63,8 +91,10 @@ export async function getDashboardSnapshot() {
 		billbacks: outstandingBillbacks,
 		billbackTotal,
 		cashThisMonth,
+		cash,
 		crossEntity,
-		crossEntityTotal
+		crossEntityTotal,
+		errors
 	};
 }
 

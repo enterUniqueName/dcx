@@ -28,6 +28,19 @@ export async function updateLoan(id, patch) {
 	);
 }
 
+export async function getLoanObligations(loanId) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase
+			.from('v_obligations')
+			.select('id, name, property_name, next_due_date, est_amount, amount, status')
+			.eq('organization_id', orgId)
+			.eq('loan_id', loanId)
+			.eq('kind', 'bill')
+			.order('next_due_date')
+	);
+}
+
 export async function deleteLoan(id) {
 	const orgId = getOrgId();
 	return unwrap(

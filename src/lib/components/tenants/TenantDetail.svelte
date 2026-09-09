@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
+	import DocumentsPanel from '../obligation/DocumentsPanel.svelte';
 
 	export let row = null;
 
@@ -14,12 +15,19 @@
 	];
 
 	let rentRows = [];
+	let billbacks = [];
 	let loading = true;
 	let error = '';
 
 	onMount(async () => {
 		try {
 			rentRows = await api.getTenantRentHistory(row.id);
+
+			const allBillbacks = await api.getBillbacks();
+			billbacks = allBillbacks.filter((b) => {
+				const display = b.responsible_party_display ?? '';
+				return display.includes(row.name) && b.balance > 0;
+			});
 		} catch (e) {
 			error = e.message;
 		} finally {
@@ -78,6 +86,26 @@
 			{/if}
 			{#if row.lease_notes}<p class="muted lease-notes">{row.lease_notes}</p>{/if}
 			{#if row.notes}<p class="muted lease-notes">{row.notes}</p>{/if}
+		</div>
+
+		<div class="section">
+			<h3>Billbacks</h3>
+			{#if billbacks.length === 0}
+				<p class="muted">No billbacks</p>
+			{:else}
+				<ul>
+					{#each billbacks as b (b.id)}
+						<li>
+							<b>{b.description ?? 'Billback'}</b>
+							<span>{formatMoney(b.amount)} · {b.status} · {b.from_entity_name}</span>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+
+		<div class="section">
+			<DocumentsPanel entityType="tenant" entityId={row.id} />
 		</div>
 	</div>
 </div>

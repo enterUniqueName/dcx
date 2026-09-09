@@ -54,3 +54,29 @@ export async function deleteProperty(id) {
 			.eq('id', id)
 	);
 }
+
+export async function getPropertyObligations(propertyId) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase
+			.from('v_obligations')
+			.select('id, name, category, amount, est_amount, next_due_date, status, vendor_name')
+			.eq('organization_id', orgId)
+			.eq('property_id', propertyId)
+			.eq('kind', 'bill')
+			.eq('status', 'open')
+			.order('next_due_date')
+	);
+}
+
+export async function getPropertyLoans(propertyId) {
+	const orgId = getOrgId();
+	return unwrap(
+		await supabase
+			.from('v_loans')
+			.select('id, lender, loan_number, nickname, current_balance, monthly_payment, status')
+			.eq('organization_id', orgId)
+			.eq('property_id', propertyId)
+			.order('lender')
+	);
+}

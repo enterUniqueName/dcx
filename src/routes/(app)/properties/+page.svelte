@@ -1,11 +1,13 @@
 <script>
 	import CrudPage from '$lib/components/crud/CrudPage.svelte';
+	import PropertyDetail from '$lib/components/properties/PropertyDetail.svelte';
 	import { api } from '$lib/api';
 
 	const columns = [
 		{ key: 'name', label: 'Name' },
 		{ key: 'address1', label: 'Address' },
 		{ key: 'ownership_entity_name', label: 'Entity' },
+		{ key: 'property_type', label: 'Type' },
 		{ key: 'unit_count', label: 'Units' },
 		{ key: 'annual_tax', label: 'Annual tax', format: 'money' },
 		{ key: 'tax_next_amount', label: 'Next tax', format: 'money' },
@@ -61,5 +63,6 @@
 	update={api.updateProperty}
 	remove={api.deleteProperty}
 	loadReferences={async () => ({ entities: await api.getOwnershipEntities() })}
+	detail={PropertyDetail}
 	stickyFirst
 />

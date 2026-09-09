@@ -1,5 +1,6 @@
 <script>
 	import CrudPage from '$lib/components/crud/CrudPage.svelte';
+	import LoanDetail from '$lib/components/loans/LoanDetail.svelte';
 	import { api } from '$lib/api';
 
 	const columns = [
@@ -70,4 +71,5 @@
 		entities: await api.getOwnershipEntities(),
 		properties: await api.getProperties()
 	})}
+	detail={LoanDetail}
 />
