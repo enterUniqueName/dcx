@@ -97,6 +97,9 @@
 						<tr>
 							<td>
 								<a href={`${base}/obligations/${r.ob.id}`}>{r.ob.name}</a>
+								{#if r.ob.payment_url}
+									<a class="pay-link" href={r.ob.payment_url} target="_blank" rel="noopener" title="Pay online">↗</a>
+								{/if}
 							</td>
 							<td>{r.ob.ownership_entity_name ?? '—'}</td>
 							<td>{r.ob.property_name && r.ob.property_address1 ? `${r.ob.property_name} - ${r.ob.property_address1}` : (r.ob.property_name ?? '—')}</td>
@@ -154,5 +157,25 @@
 		color: var(--text-muted);
 		margin-left: 0.25rem;
 		text-transform: uppercase;
+	}
+	.pay-link {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.2em;
+		height: 1.2em;
+		font-size: 11px;
+		margin-left: 0.3rem;
+		color: var(--primary);
+		text-decoration: none;
+		border: 1px solid var(--border);
+		border-radius: 3px;
+		line-height: 1;
+		vertical-align: middle;
+	}
+	.pay-link:hover {
+		background: var(--primary);
+		color: #fff;
+		border-color: var(--primary);
 	}
 </style>

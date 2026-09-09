@@ -1,5 +1,5 @@
 // Documents: metadata in Postgres, files in the private "documents" bucket.
-import { supabase, unwrap } from './client.js';
+import { supabase, unwrap, friendlyError } from './client.js';
 import { getOrgId } from './context.js';
 
 export async function getDocuments({ entityType, entityId } = {}) {
@@ -23,7 +23,7 @@ export async function uploadDocument(entityType, entityId, file) {
 		cacheControl: '3600',
 		upsert: false
 	});
-	if (upload.error) throw new Error(upload.error.message);
+	if (upload.error) throw new Error(friendlyError(upload.error));
 
 	return unwrap(
 		await supabase
@@ -71,6 +71,6 @@ export async function getDocumentUrl(id) {
 	const { data, error } = await supabase.storage
 		.from('documents')
 		.createSignedUrl(row.storage_path, 300);
-	if (error) throw new Error(error.message);
+	if (error) throw new Error(friendlyError(error));
 	return data.signedUrl;
 }

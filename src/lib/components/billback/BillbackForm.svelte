@@ -142,6 +142,12 @@
 		if (!form.fromEntityId) issues.push('Paid by (ownership entity) is required.');
 		if (form.responsibility === 'tenant' && !form.tenantId) issues.push('Choose the tenant responsible for the billback.');
 		if (form.responsibility === 'ownership_entity' && !form.landlordId) issues.push('Choose the ownership entity responsible for the billback.');
+		if (
+			form.responsibility === 'ownership_entity' &&
+			form.landlordId &&
+			form.landlordId === form.fromEntityId
+		)
+			issues.push('The responsible entity is the same as the paying entity — there is nothing to bill back. Add a markup/price adjustment instead, or choose a different entity / switch to Tenant responsibility.');
 		if (form.responsibility === 'split') {
 			const active = form.splitRows.filter((r) => r.tenantId || r.entityId);
 			if (active.length === 0) issues.push('Add at least one responsible party.');

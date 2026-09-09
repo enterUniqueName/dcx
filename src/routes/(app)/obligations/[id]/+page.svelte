@@ -261,8 +261,8 @@
 				<b><a href={`${base}/obligations/${template.id}`}>{template.name}</a></b>
 			</div>
 		{/if}
-		{#if obligation.portal_url}
-			<div class="fact"><span>Portal</span><b><a href={obligation.portal_url} target="_blank" rel="noopener">Open portal</a></b></div>
+		{#if obligation.payment_url}
+			<div class="fact"><span>Pay online</span><b><a href={obligation.payment_url} target="_blank" rel="noopener">Open portal ↗</a></b></div>
 		{/if}
 		{#if obligation.notes}<div class="fact wide"><span>Notes</span><b>{obligation.notes}</b></div>{/if}
 	</div>

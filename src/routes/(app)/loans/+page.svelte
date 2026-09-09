@@ -40,6 +40,7 @@
 			]
 		},
 		{ key: 'monthly_payment', label: 'Monthly payment', type: 'number', min: 0, step: 0.01 },
+		{ key: 'payment_url', label: 'Payment portal URL', type: 'text', placeholder: 'https://…' },
 		{
 			key: 'status',
 			label: 'Status',

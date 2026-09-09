@@ -30,7 +30,7 @@
 		},
 		{ key: 'email', label: 'Email', type: 'text' },
 		{ key: 'phone', label: 'Phone', type: 'text' },
-		{ key: 'website', label: 'Website', type: 'text' },
+		{ key: 'website', label: 'Website / Payment portal', type: 'text', placeholder: 'https://…' },
 		{ key: 'payment_terms', label: 'Payment terms', type: 'text', placeholder: 'Net 30' },
 		{ key: 'active', label: 'Active vendor', type: 'checkbox' },
 		{ key: 'notes', label: 'Notes', type: 'textarea' }
