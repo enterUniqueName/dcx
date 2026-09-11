@@ -297,7 +297,7 @@
 {#if showGenerate}
 	<ConfirmDialog
 		title="Generate bills?"
-		message="Create every missing bill for this template (and all other open templates) up to 6 months out. Already-generated bills are kept."
+		message="Create every missing bill for this template (and all other open templates) up to the next two months out. Already-generated bills are kept."
 		confirmLabel="Generate bills"
 		onConfirm={confirmGenerate}
 		onCancel={() => (showGenerate = false)}

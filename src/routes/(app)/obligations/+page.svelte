@@ -19,7 +19,7 @@
 	let search = '';
 	let status = 'all';
 	let entityId = '';
-	let groupByProperty = false;
+	let groupByProperty = true;
 
 	let loanSearch = '';
 	let utilitySearch = '';

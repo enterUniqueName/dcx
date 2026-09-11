@@ -2,6 +2,7 @@
 // template is materialized into concrete bills by generate_bills().
 import { supabase, unwrap } from './client.js';
 import { getOrgId } from './context.js';
+import { toISODate } from '../utils/format.js';
 
 function templateQuery() {
 	const orgId = getOrgId();
@@ -67,14 +68,15 @@ export async function deleteTemplate(id) {
 }
 
 // Materialize missing bills for every open template, from each template's last
-// generated due date forward to p_targetDate (default: today + 180 days).
+// generated due date forward to p_targetDate (default: today + 75 days, the
+// next two months — matching the scheduled auto-generation window).
 // Returns the number of bills created.
 export async function generateBills({ targetDate } = {}) {
 	const orgId = getOrgId();
 	return unwrap(
 		await supabase.rpc('generate_bills', {
 			p_organization_id: orgId,
-			p_target_date: targetDate ?? null
+			p_target_date: targetDate ?? toISODate(new Date(Date.now() + 75 * 24 * 60 * 60 * 1000))
 		})
 	);
 }
