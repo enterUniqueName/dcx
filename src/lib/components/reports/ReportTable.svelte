@@ -4,6 +4,7 @@
 
 	// columns: [{ key, label, format: 'text'|'money'|'date' }]
 	export let columns = [];
+	export let exportColumns = null;
 	export let rows = [];
 	export let filename = 'report.csv';
 	export let empty = 'Nothing to show.';
@@ -24,7 +25,11 @@
 <div class="report">
 	<div class="report-head">
 		<h2>{filename.replace(/\.csv$/, '').replace(/[-_]/g, ' ')}</h2>
-		<button class="btn" onclick={() => downloadCSV(filename, columns, rows)} disabled={rows.length === 0}>
+		<button
+			class="btn"
+			onclick={() => downloadCSV(filename, exportColumns ?? columns, rows)}
+			disabled={rows.length === 0}
+		>
 			Export CSV
 		</button>
 	</div>

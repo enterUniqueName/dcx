@@ -52,6 +52,33 @@ export async function getCrossEntityPayments({ from, to } = {}) {
 	return unwrap(await query);
 }
 
+// Open bills matching the ownership, property, and category report criteria.
+export async function getObligationReport({
+	ownershipEntityId,
+	propertyIds = [],
+	categories = [],
+	includeOverdue = false
+} = {}) {
+	if (!ownershipEntityId || propertyIds.length === 0 || categories.length === 0) return [];
+
+	const orgId = getOrgId();
+	let query = supabase
+		.from('v_obligations')
+		.select('*')
+		.eq('organization_id', orgId)
+		.eq('ownership_entity_id', ownershipEntityId)
+		.eq('kind', 'bill')
+		.eq('status', 'open')
+		.in('property_id', propertyIds)
+		.in('category', categories)
+		.order('next_due_date')
+		.order('property_name')
+		.order('name');
+
+	if (!includeOverdue) query = query.gte('next_due_date', toISODate(new Date()));
+	return unwrap(await query);
+}
+
 // Everything the dashboard needs in one call.
 // Uses Promise.allSettled so one failing sub-call doesn't kill the entire dashboard.
 export async function getDashboardSnapshot() {

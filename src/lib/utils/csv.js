@@ -1,10 +1,10 @@
-// Download rows as a CSV file. Raw values are used (no currency/date display formatting).
+// Download rows as a CSV file. A column can provide exportValue(row) for custom output.
 export function downloadCSV(filename, columns, rows) {
 	const header = columns.map((c) => c.label).join(',');
 	const lines = rows.map((row) =>
 		columns
 			.map((c) => {
-				const v = row[c.key];
+				const v = c.exportValue ? c.exportValue(row) : row[c.key];
 				const s = v === null || v === undefined ? '' : String(v);
 				return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 			})

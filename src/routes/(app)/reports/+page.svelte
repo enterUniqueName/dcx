@@ -4,8 +4,10 @@
 	import PaymentLogReport from '$lib/components/reports/PaymentLogReport.svelte';
 	import BillbackRegister from '$lib/components/reports/BillbackRegister.svelte';
 	import CrossEntityReport from '$lib/components/reports/CrossEntityReport.svelte';
+	import ObligationReport from '$lib/components/reports/ObligationReport.svelte';
 
 	const TABS = [
+		{ id: 'obligations', label: 'Obligations' },
 		{ id: 'forecast', label: 'Cash forecast' },
 		{ id: 'overdue', label: 'Overdue' },
 		{ id: 'payments', label: 'Payment log' },
@@ -13,7 +15,7 @@
 		{ id: 'cross', label: 'Cross-entity' }
 	];
 
-	let active = 'forecast';
+	let active = 'obligations';
 </script>
 
 <h1>Reports</h1>
@@ -27,6 +29,7 @@
 	{/each}
 </div>
 
+{#if active === 'obligations'}<ObligationReport />{/if}
 {#if active === 'forecast'}<CashForecast />{/if}
 {#if active === 'overdue'}<OverdueReport />{/if}
 {#if active === 'payments'}<PaymentLogReport />{/if}
