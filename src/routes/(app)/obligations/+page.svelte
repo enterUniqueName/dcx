@@ -4,6 +4,7 @@
 	import { api } from '$lib/api';
 	import StatusBadge from '$lib/components/ui/StatusBadge.svelte';
 	import DueChip from '$lib/components/ui/DueChip.svelte';
+	import GenerateBillsModal from '$lib/components/obligation/GenerateBillsModal.svelte';
 	import { formatMoney, formatDate } from '$lib/utils/format.js';
 	import { sortRows, nextSort } from '$lib/utils/sort.js';
 
@@ -15,6 +16,9 @@
 	let loans = [];
 	let loading = true;
 	let error = '';
+	let success = '';
+	let showGenerate = false;
+	let generating = false;
 
 	let search = '';
 	let status = 'all';
@@ -222,6 +226,26 @@
 			loading = false;
 		}
 	}
+
+	async function generateBills(options) {
+		generating = true;
+		error = '';
+		success = '';
+		try {
+			const created = await api.generateBills(options);
+			showGenerate = false;
+			success = created === 1
+				? 'Generated 1 new bill.'
+				: created > 1
+					? `Generated ${created} new bills.`
+					: 'No new bills were needed for those selections.';
+			bills = await loadBills();
+		} catch (e2) {
+			error = e2.message;
+		} finally {
+			generating = false;
+		}
+	}
 </script>
 
 <div class="page-header">
@@ -232,6 +256,7 @@
 		</p>
 	</div>
 	<div class="actions">
+		<button class="btn" onclick={() => { success = ''; showGenerate = true; }}>Generate Bills</button>
 		<a class="btn" href={`${base}/obligations/new?kind=template`}>+ New template</a>
 		<a class="btn btn-primary" href={`${base}/obligations/new?kind=bill`}>+ New bill</a>
 	</div>
@@ -267,6 +292,7 @@
 {/if}
 
 {#if error}<p class="error-text">{error}</p>{/if}
+{#if success}<p class="success-text">{success}</p>{/if}
 
 {#if loading}
 	<p class="empty">Loading…</p>
@@ -421,10 +447,25 @@
 	{/if}
 {/if}
 
+{#if showGenerate}
+	<GenerateBillsModal
+		{entities}
+		{properties}
+		busy={generating}
+		onConfirm={generateBills}
+		onCancel={() => (showGenerate = false)}
+	/>
+{/if}
+
 <style>
 	.actions {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.5rem;
+	}
+	.success-text {
+		color: var(--ok);
+		font-size: 13px;
 	}
 	.tabs {
 		display: flex;

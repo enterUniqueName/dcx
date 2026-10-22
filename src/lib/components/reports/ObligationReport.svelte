@@ -18,14 +18,26 @@
 	];
 
 	const columns = [
-		{ key: 'name', label: 'Obligation' },
-		{ key: 'property_name', label: 'Property' },
-		{ key: 'category', label: 'Category' },
-		{ key: 'loan_name', label: 'Lender' },
+		{ key: 'name', label: 'Obligation', sortable: true },
+		{ key: 'property_name', label: 'Property', sortable: true },
+		{ key: 'category', label: 'Category', sortable: true },
+		{ key: 'loan_name', label: 'Lender', sortable: true },
 		{ key: 'loan_account', label: 'Loan Account' },
-		{ key: 'next_due_date', label: 'Due', format: 'date' },
-		{ key: 'amount', label: 'Amount', format: 'money' },
-		{ key: 'is_overdue', label: 'Overdue' }
+		{
+			key: 'next_due_date',
+			label: 'Due',
+			format: 'date',
+			sortable: true,
+			alert: (row) => row.is_overdue
+		},
+		{
+			key: 'amount',
+			label: 'Amount',
+			format: 'money',
+			sortable: true,
+			alert: (row) => row.is_overdue
+		},
+		{ key: 'is_overdue', label: 'Overdue', format: 'yesno', sortable: true }
 	];
 
 	const exportColumns = [
@@ -48,6 +60,7 @@
 	let selectedPropertyIds = [];
 	let selectedCategories = CATEGORIES.map((category) => category.id);
 	let includeOverdue = false;
+	let selectedResultCategories = [];
 	let rows = [];
 	let loadingOptions = true;
 	let running = false;
@@ -57,6 +70,13 @@
 	$: entityProperties = properties.filter(
 		(property) => property.ownership_entity_id === ownershipEntityId
 	);
+	$: resultCategories = [...new Set(rows.map((row) => row.category))].sort();
+	$: visibleRows = rows.filter((row) => selectedResultCategories.includes(row.category));
+	$: resultFilterOptions = resultCategories.map((category) => ({
+			value: category,
+			label: category.replace(/_/g, ' ')
+		}));
+	$: resultTotal = visibleRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
 	onMount(async () => {
 		try {
 			[entities, properties] = await Promise.all([
@@ -75,6 +95,7 @@
 			.filter((property) => property.ownership_entity_id === ownershipEntityId)
 			.map((property) => property.id);
 		rows = [];
+		selectedResultCategories = [];
 		hasRun = false;
 		error = '';
 	}
@@ -96,6 +117,7 @@
 	async function runReport() {
 		running = true;
 		error = '';
+		selectedResultCategories = [];
 		try {
 			const result = await api.getObligationReport({
 				ownershipEntityId,
@@ -104,6 +126,7 @@
 				includeOverdue
 			});
 			rows = result;
+			selectedResultCategories = [...new Set(result.map((row) => row.category))].sort();
 			hasRun = true;
 		} catch (e) {
 			error = e.message;
@@ -112,6 +135,12 @@
 		} finally {
 			running = false;
 		}
+	}
+
+	function toggleResultCategory(category, checked) {
+		selectedResultCategories = checked
+			? [...selectedResultCategories, category]
+			: selectedResultCategories.filter((value) => value !== category);
 	}
 </script>
 
@@ -195,11 +224,21 @@
 {#if hasRun || running}
 	<ReportTable
 		filename="obligation-report.csv"
+		title="Obligation Report"
+		total={formatMoney(resultTotal)}
+		filterLabel="Categories"
+		filterOptions={rows.length > 0 ? resultFilterOptions : []}
+		filterValues={selectedResultCategories}
+		filterMultiple={true}
+		onFilterChange={toggleResultCategory}
+		exportMenu={true}
 		{columns}
 		{exportColumns}
-		{rows}
+		rows={visibleRows}
 		loading={running}
 		{error}
+		defaultSortKey="next_due_date"
+		defaultSortDir="asc"
 		empty="No open bills match these criteria."
 		rowHref={(row) => `${base}/obligations/${row.id}`}
 	/>

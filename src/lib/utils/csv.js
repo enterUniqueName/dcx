@@ -19,3 +19,42 @@ export function downloadCSV(filename, columns, rows) {
 	a.click();
 	URL.revokeObjectURL(url);
 }
+
+// Capture a report section as it appears in the browser.
+export async function downloadPNG(filename, element) {
+	if (!element) throw new Error('There is no report to export.');
+	await document.fonts?.ready;
+	const { default: html2canvas } = await import('html2canvas');
+	const tableWidth = element.querySelector('table')?.scrollWidth ?? 0;
+	const width = Math.ceil(Math.max(element.scrollWidth, tableWidth));
+	const height = Math.ceil(element.scrollHeight);
+	const scale = Math.min(2, 16000 / width, 16000 / height);
+	const canvas = await html2canvas(element, {
+		backgroundColor: '#ffffff',
+		scale,
+		useCORS: true,
+		width,
+		height,
+		windowWidth: width,
+		onclone: (documentClone) => {
+			const report = documentClone.querySelector('[data-png-report]');
+			if (!report) return;
+			report.style.width = `${width}px`;
+			const tableWrap = report.querySelector('.table-wrap');
+			if (tableWrap) tableWrap.style.overflow = 'visible';
+		}
+	});
+
+	const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+	if (!blob) throw new Error('The report image could not be created.');
+	downloadBlob(filename, blob);
+}
+
+function downloadBlob(filename, blob) {
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+	link.click();
+	URL.revokeObjectURL(url);
+}

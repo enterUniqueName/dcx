@@ -71,12 +71,20 @@ export async function deleteTemplate(id) {
 // generated due date forward to p_targetDate (default: today + 75 days, the
 // next two months — matching the scheduled auto-generation window).
 // Returns the number of bills created.
-export async function generateBills({ targetDate } = {}) {
+export async function generateBills({
+	targetDate,
+	ownershipEntityId,
+	propertyId,
+	category
+} = {}) {
 	const orgId = getOrgId();
 	return unwrap(
 		await supabase.rpc('generate_bills', {
 			p_organization_id: orgId,
-			p_target_date: targetDate ?? toISODate(new Date(Date.now() + 75 * 24 * 60 * 60 * 1000))
+			p_target_date: targetDate ?? toISODate(new Date(Date.now() + 75 * 24 * 60 * 60 * 1000)),
+			p_ownership_entity_id: ownershipEntityId || null,
+			p_property_id: propertyId || null,
+			p_category: category || null
 		})
 	);
 }
